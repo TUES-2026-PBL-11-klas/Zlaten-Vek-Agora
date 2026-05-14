@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+
+echo "▶ pre-push: gitleaks secret scan"
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --verbose || {
+    echo "✗ gitleaks found secrets in staged changes. Aborting push."
+    exit 1
+  }
+  gitleaks detect --redact --no-banner --log-opts="origin/main..HEAD" || {
+    echo "✗ gitleaks found secrets in commits ahead of origin/main. Aborting push."
+    exit 1
+  }
+else
+  echo "✗ gitleaks not installed. Install with: brew install gitleaks"
+  echo "  (required — we ship API keys for OpenAI / Gemini / Supabase)"
+  exit 1
+fi
+
+echo "▶ pre-push: unit tests"
+pnpm test || exit 1

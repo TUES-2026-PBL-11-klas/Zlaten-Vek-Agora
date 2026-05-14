@@ -56,7 +56,7 @@ pnpm dev
 ```
 
 - Web: http://localhost:5173
-- API: http://localhost:3001/api  (proxied from web as `/api/*`)
+- API: http://localhost:3001/api (proxied from web as `/api/*`)
 
 Run just one:
 
@@ -73,10 +73,41 @@ pnpm typecheck
 pnpm test
 ```
 
+## Quality gates
+
+### Local (Husky)
+
+- **pre-commit** — runs `lint-staged` (ESLint `--fix` + Prettier on staged `.ts`/`.tsx`/`.json`/`.md`/`.yml`) then `pnpm typecheck` across all workspaces.
+- **pre-push** — runs `gitleaks` (staged + new commits) then `pnpm test`. Install gitleaks once: `brew install gitleaks`.
+
+Hooks install automatically via the `prepare` script after `pnpm install`. If they ever disappear, run `pnpm exec husky` to reinstall.
+
+### CI ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+
+Runs on every PR targeting `main` and every push to non-`main` branches. Jobs: `lint` → `secret-scan` → `type-check` → `test` → `build` (`pnpm build` — turbo compiles both apps). A `notify` job comments on the PR listing which job failed.
+
+### CD ([.github/workflows/cd.yml](.github/workflows/cd.yml))
+
+Placeholder — runs on push to `main` and logs a TODO. Real Docker build/push + k3s rollout lands in M5.
+
+### Branch protection — configure once on GitHub
+
+`Settings → Branches → Add branch protection rule` for `main`:
+
+- ✅ Require a pull request before merging
+  - Require approvals: **1** (each teammate does ≥ 2 reviews/week — ВОТ requirement)
+  - Dismiss stale approvals on new commits
+- ✅ Require status checks to pass before merging
+  - Required checks: `Lint (ESLint + Prettier)`, `Secret scan (gitleaks)`, `Type-check (tsc --noEmit)`, `Unit tests`, `Build (api + web)`
+  - Require branches to be up to date before merging
+- ✅ Require conversation resolution before merging
+- ✅ Do not allow bypassing the above (uncheck "Allow administrators to bypass")
+- ❌ Allow force pushes / deletions — leave off
+
 ## Endpoints
 
 - `GET  /api/users`
 - `GET  /api/users/:id`
-- `POST /api/users`  body: `{ "email": string, "name": string }`
+- `POST /api/users` body: `{ "email": string, "name": string }`
 
 The default repository is in-memory; swap `InMemoryUserRepository` for a real implementation in `apps/api/src/modules/users/users.module.ts`.
