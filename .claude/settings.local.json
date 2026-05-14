@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --hide-scrollbars --window-size=2000,2320 --screenshot=/tmp/agora-uml.png \"file:///Users/kaloyan/Desktop/Projects/Zlaten-Vek-Agora/docs/diagrams/uml.html\")"
+    ]
+  }
+}
