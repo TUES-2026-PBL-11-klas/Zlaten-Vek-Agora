@@ -1,0 +1,19 @@
+name: CD
+
+# Placeholder — real deployment (Docker build + push to GHCR, k3s rollout)
+# lands in M5. For now this workflow just confirms it triggers on main.
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  placeholder:
+    name: CD placeholder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark deploy step as TODO
+        run: |
+          echo "TODO (M5): build & push Docker images to ghcr.io, then kubectl/helm against k3s"
+          echo "Commit: ${GITHUB_SHA}"

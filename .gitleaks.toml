@@ -1,0 +1,17 @@
+title = "Zlaten Vek Agora — gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Files that may contain placeholder/example credentials but never real ones"
+paths = [
+  '''\.env\.example$''',
+  '''(^|/)README\.md$''',
+  '''(^|/)docs/.*\.md$''',
+  '''(^|/)pnpm-lock\.yaml$''',
+]
+regexes = [
+  '''sk-(your|example|placeholder|test).*''',
+  '''AIza(your|example|placeholder|test).*''',
+]

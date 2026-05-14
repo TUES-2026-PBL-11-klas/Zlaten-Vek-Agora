@@ -9,9 +9,12 @@ export function AppRouter() {
     <div className="min-h-screen bg-neutral-900 text-neutral-100 font-sans">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <nav className="flex gap-4 border-b border-neutral-700 pb-4 mb-8">
-          <Link to="/" className="text-sky-400 hover:underline">Dashboard</Link>
-          <Link to="/debates/new" className="text-sky-400 hover:underline">New Debate</Link>
-          <Link to="/login" className="text-sky-400 hover:underline">Login</Link>
+          <Link to="/" className="text-sky-400 hover:underline">
+            Home
+          </Link>
+          <Link to="/users" className="text-sky-400 hover:underline">
+            Users
+          </Link>
         </nav>
         <main className="flex flex-col gap-4">
           <Routes>

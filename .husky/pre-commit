@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+echo "▶ pre-commit: lint-staged (eslint --fix + prettier)"
+pnpm exec lint-staged || exit 1
+
+echo "▶ pre-commit: type-check (tsc --noEmit) across workspaces"
+pnpm typecheck || exit 1
