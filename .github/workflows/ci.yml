@@ -34,8 +34,6 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma generate
-        working-directory: apps/api
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
@@ -55,8 +53,6 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma generate
-        working-directory: apps/api
       - run: pnpm test
 
   notify:
