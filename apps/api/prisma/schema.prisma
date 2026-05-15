@@ -6,3 +6,110 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  debates Debate[]
+
+  @@map("users")
+}
+
+model Debate {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  title      String
+  billText   String   @map("bill_text") @db.Text
+  sourceType String   @map("source_type")
+  status     String   @default("draft")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user           User            @relation(fields: [userId], references: [id])
+  personas       Persona[]
+  rounds         Round[]
+  debateMessages DebateMessage[]
+  analysisResult AnalysisResult?
+  judgeSummary   JudgeSummary?
+
+  @@map("debates")
+}
+
+model Persona {
+  id          String   @id @default(uuid())
+  debateId    String   @map("debate_id")
+  name        String
+  demographic String
+  interests   String   @db.Text
+  fears       String   @db.Text
+  priorities  String   @db.Text
+  color       String
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  debate         Debate          @relation(fields: [debateId], references: [id])
+  debateMessages DebateMessage[]
+
+  @@map("personas")
+}
+
+model Round {
+  id          String    @id @default(uuid())
+  debateId    String    @map("debate_id")
+  roundNumber Int       @map("round_number")
+  phase       String
+  startedAt   DateTime  @default(now()) @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+
+  debate         Debate          @relation(fields: [debateId], references: [id])
+  debateMessages DebateMessage[]
+
+  @@index([debateId, roundNumber])
+  @@map("rounds")
+}
+
+model DebateMessage {
+  id        String   @id @default(uuid())
+  debateId  String   @map("debate_id")
+  roundId   String   @map("round_id")
+  personaId String   @map("persona_id")
+  content   String   @db.Text
+  sequence  Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  debate  Debate  @relation(fields: [debateId], references: [id])
+  round   Round   @relation(fields: [roundId], references: [id])
+  persona Persona @relation(fields: [personaId], references: [id])
+
+  @@index([debateId, createdAt])
+  @@map("debate_messages")
+}
+
+model AnalysisResult {
+  id               String   @id @default(uuid())
+  debateId         String   @unique @map("debate_id")
+  affectedGroups   Json     @map("affected_groups")
+  keyChanges       Json     @map("key_changes")
+  contentiousPoints Json    @map("contentious_points")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  debate Debate @relation(fields: [debateId], references: [id])
+
+  @@map("analysis_results")
+}
+
+model JudgeSummary {
+  id             String   @id @default(uuid())
+  debateId       String   @unique @map("debate_id")
+  contradictions String   @db.Text
+  commonPoints   String   @map("common_points") @db.Text
+  compromises    String   @db.Text
+  groupSummaries Json     @map("group_summaries")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  debate Debate @relation(fields: [debateId], references: [id])
+
+  @@map("judge_conclusions")
+}
