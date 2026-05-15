@@ -104,9 +104,9 @@ model AnalysisResult {
 model JudgeSummary {
   id             String   @id @default(uuid())
   debateId       String   @unique @map("debate_id")
-  contradictions String   @db.Text
-  commonPoints   String   @map("common_points") @db.Text
-  compromises    String   @db.Text
+  contradictions Json
+  commonPoints   Json     @map("common_points")
+  compromises    Json
   groupSummaries Json     @map("group_summaries")
   createdAt      DateTime @default(now()) @map("created_at")
 

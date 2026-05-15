@@ -23,7 +23,9 @@ export class PrismaDebateMessageRepository implements IDebateMessageRepository {
     });
   }
 
-  async append(data: Omit<DebateMessageEntity, "id" | "createdAt">): Promise<DebateMessageEntity> {
+  async append(
+    data: Omit<DebateMessageEntity, "id" | "createdAt" | "persona">,
+  ): Promise<DebateMessageEntity> {
     return this.prisma.debateMessage.create({ data, include: { persona: true } });
   }
 }

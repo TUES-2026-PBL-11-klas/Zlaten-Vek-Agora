@@ -1,3 +1,5 @@
+import { PersonaEntity } from "../../persona/domain/persona.entity";
+
 export interface DebateEntity {
   id: string;
   userId: string;
@@ -16,4 +18,5 @@ export interface DebateMessageEntity {
   content: string;
   sequence: number;
   createdAt: Date;
+  persona: PersonaEntity;
 }

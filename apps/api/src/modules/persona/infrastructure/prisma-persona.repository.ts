@@ -12,6 +12,7 @@ export class PrismaPersonaRepository implements IPersonaRepository {
   }
 
   async saveMany(personas: Omit<PersonaEntity, "id" | "createdAt">[]): Promise<PersonaEntity[]> {
+    if (personas.length === 0) return [];
     await this.prisma.persona.createMany({ data: personas });
     return this.prisma.persona.findMany({
       where: { debateId: personas[0].debateId },
