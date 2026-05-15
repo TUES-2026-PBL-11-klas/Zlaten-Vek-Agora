@@ -4,6 +4,7 @@ import { AgentModule } from "./modules/agent/agent.module";
 import { AnalysisModule } from "./modules/analysis/analysis.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DebateModule } from "./modules/debate/debate.module";
+import { HealthModule } from "./modules/health/health.module";
 import { JudgeModule } from "./modules/judge/judge.module";
 import { PersonaModule } from "./modules/persona/persona.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
@@ -20,6 +21,7 @@ import { UserModule } from "./modules/user/user.module";
     AnalysisModule,
     JudgeModule,
     UserModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -88,12 +89,12 @@ model DebateMessage {
 }
 
 model AnalysisResult {
-  id               String   @id @default(uuid())
-  debateId         String   @unique @map("debate_id")
-  affectedGroups   Json     @map("affected_groups")
-  keyChanges       Json     @map("key_changes")
-  contentiousPoints Json    @map("contentious_points")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  debateId          String   @unique @map("debate_id")
+  affectedGroups    Json     @map("affected_groups")
+  keyChanges        Json     @map("key_changes")
+  contentiousPoints Json     @map("contentious_points")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   debate Debate @relation(fields: [debateId], references: [id])
 
