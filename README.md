@@ -38,27 +38,40 @@ Monorepo: Vite + React web app and NestJS API, both with a layered architecture 
 
 ## Prerequisites
 
-- Node.js ≥ 20
-- pnpm ≥ 10
+- Docker + Docker Compose
+- Node.js ≥ 20 and pnpm ≥ 10 (only if you want to run the apps natively on the host)
 
-## Install
+The database is Supabase (Postgres). Local dev points at the same `DATABASE_URL` you set in `.env`; there is no Postgres container.
+
+## Quick start (Docker)
+
+```bash
+cp .env.example .env          # fill in DATABASE_URL + SUPABASE_* values
+docker compose up --build     # first run builds the images
+```
+
+- Web: http://localhost:5173
+- API: http://localhost:3000/health (other routes under `/api`)
+
+The web container serves the Vite production build as static files. `VITE_API_URL` is baked into the bundle at build time (default `http://localhost:3000/api`), so the browser calls the api directly. Edit a frontend file and you need to `docker compose up --build web` to see it. For an iterative dev loop with hot reload, use the host-app variant below.
+
+Environment variables are documented in [.env.example](.env.example). `.env` is gitignored; real Supabase / OpenAI keys live in GitHub Secrets and k3s Secrets (M5).
+
+## Develop with apps on the host
+
+For day-to-day frontend/backend work you'll want hot reload:
 
 ```bash
 pnpm install
-```
-
-## Develop
-
-Run both apps in parallel via Turborepo:
-
-```bash
-pnpm dev
+pnpm dev                                # api on :3001, web on :5173
 ```
 
 - Web: http://localhost:5173
 - API: http://localhost:3001/api (proxied from web as `/api/*`)
 
-Run just one:
+Copy [apps/api/.env.example](apps/api/.env.example) to `apps/api/.env` and set `DATABASE_URL` to your Supabase connection string.
+
+Run just one app:
 
 ```bash
 pnpm --filter @agora/web dev
