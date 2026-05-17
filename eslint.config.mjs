@@ -54,5 +54,16 @@ export default [
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
+  {
+    files: ["apps/api/scripts/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "commonjs",
+      globals: { ...globals.node },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
   prettier,
 ];
