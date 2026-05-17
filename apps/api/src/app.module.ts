@@ -11,6 +11,7 @@ import { JudgeModule } from "./modules/judge/judge.module";
 import { PersonaModule } from "./modules/persona/persona.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { RoundModule } from "./modules/round/round.module";
+import { SpikeModule } from "./modules/spike/spike.module";
 import { UserModule } from "./modules/user/user.module";
 
 @Module({
@@ -26,6 +27,7 @@ import { UserModule } from "./modules/user/user.module";
     RoundModule,
     UserModule,
     HealthModule,
+    SpikeModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
