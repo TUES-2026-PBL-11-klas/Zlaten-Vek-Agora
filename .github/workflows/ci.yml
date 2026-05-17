@@ -34,7 +34,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @agora/api prisma:generate
+      - run: pnpm --filter @agora/api db:generate
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
@@ -54,7 +54,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @agora/api prisma:generate
+      - run: pnpm --filter @agora/api db:generate
       - run: pnpm test
 
   notify:

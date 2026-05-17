@@ -14,6 +14,10 @@
     "spike:analysis": "ts-node --project tsconfig.json scripts/llm-spike/analysis.ts",
     "spike:persona": "ts-node --project tsconfig.json scripts/llm-spike/persona-debate.ts",
     "spike:judge": "ts-node --project tsconfig.json scripts/llm-spike/judge.ts"
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate",
   },
   "dependencies": {
     "@agora/shared": "workspace:*",

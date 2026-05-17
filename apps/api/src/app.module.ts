@@ -8,17 +8,21 @@ import { HealthModule } from "./modules/health/health.module";
 import { JudgeModule } from "./modules/judge/judge.module";
 import { PersonaModule } from "./modules/persona/persona.module";
 import { SpikeModule } from "./modules/spike/spike.module";
+import { PrismaModule } from "./modules/prisma/prisma.module";
+import { RoundModule } from "./modules/round/round.module";
 import { UserModule } from "./modules/user/user.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
     AuthModule,
     DebateModule,
     AgentModule,
     PersonaModule,
     AnalysisModule,
     JudgeModule,
+    RoundModule,
     UserModule,
     HealthModule,
     SpikeModule,
