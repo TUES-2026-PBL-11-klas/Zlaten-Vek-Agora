@@ -1,9 +1,45 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    "Inter", "GT America", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif:
+    "Tiempos Headline", "GT Sectra", "Canela", "Source Serif 4", "Source Serif Pro", Georgia,
+    Cambria, "Times New Roman", Times, serif;
+
+  --color-canvas: #f2ebdd;
+  --color-surface: #f8f2e6;
+  --color-surface-2: #e8dfcb;
+  --color-surface-mut: #efe7d5;
+  --color-hair: #e0d6bf;
+
+  --color-ink-primary: #1f1b16;
+  --color-ink-body: #2e2a22;
+  --color-ink-muted: #6b6357;
+  --color-ink-label: #8a8170;
+  --color-ink-button: #1a1612;
+  --color-cream: #f5eedf;
+
+  --color-accent-rust: #b85a1e;
+  --color-accent-rust-hi: #d26a23;
+
+  --color-persona-sage: #7b8f6a;
+  --color-persona-rust: #c9742f;
+  --color-persona-mustard: #c7a03a;
+  --color-persona-forest: #3f5942;
+  --color-persona-terracotta: #c04b3b;
+  --color-persona-aubergine: #6b3f5e;
+  --color-persona-steel: #6e7e8a;
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
