@@ -1,26 +1,23 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { EmailConfirmationCard } from "@/features/auth/components/EmailConfirmationCard";
 import { notify } from "@/shared/lib/notify";
-
-interface LocationState {
-  from?: { pathname: string };
-}
 
 const fieldClass =
   "h-11 rounded-lg border border-hair bg-surface-mut px-3 font-sans text-[15px] text-ink-primary placeholder:text-ink-label focus:border-accent-rust focus:outline-none focus:ring-2 focus:ring-accent-rust/15";
 
 const labelClass = "text-[12px] font-medium uppercase tracking-[0.14em] text-ink-label";
 
-export function LoginPage() {
-  const { session, loading, signIn } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+export function RegisterPage() {
+  const { session, loading, signUp } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     setError(null);
@@ -31,34 +28,62 @@ export function LoginPage() {
   }
 
   if (session) {
-    const from = (location.state as LocationState | null)?.from?.pathname ?? "/";
-    return <Navigate to={from} replace />;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    const result = await signIn(email, password);
+    const result = await signUp(email, password);
     setSubmitting(false);
 
     if (result.error) {
       setError(result.error.message);
-      notify.error("Sign-in failed.", { description: result.error.message });
+      notify.error("Sign-up failed.", { description: result.error.message });
       return;
     }
 
-    notify.success("Welcome back.");
-    navigate("/", { replace: true });
+    setConfirmationEmail(email);
+    notify.success("Account created.", {
+      description: `We sent a confirmation link to ${email}.`,
+      duration: 7000,
+    });
   };
+
+  const handleResend = async () => {
+    if (!confirmationEmail) return;
+    setResending(true);
+    const result = await signUp(confirmationEmail, password);
+    setResending(false);
+
+    if (result.error) {
+      notify.error("Could not resend.", { description: result.error.message });
+      return;
+    }
+
+    notify.success("Confirmation resent.", {
+      description: `Another link is on its way to ${confirmationEmail}.`,
+    });
+  };
+
+  if (confirmationEmail) {
+    return (
+      <EmailConfirmationCard
+        email={confirmationEmail}
+        onResend={handleResend}
+        resending={resending}
+      />
+    );
+  }
 
   return (
     <article className="mx-auto max-w-md rounded-2xl border border-hair bg-surface px-8 py-10">
-      <p className={labelClass}>Sign in</p>
+      <p className={labelClass}>Register</p>
       <h1 className="mt-3 font-serif text-[36px] leading-[42px] text-ink-primary">
-        Welcome <em className="italic text-accent-rust">back.</em>
+        Join the <em className="italic text-accent-rust">chamber.</em>
       </h1>
       <p className="mt-3 font-sans text-[14px] leading-[20px] text-ink-muted">
-        Use the email and password you registered with.
+        Email and a password is all you need to start a debate.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
@@ -79,7 +104,8 @@ export function LoginPage() {
           <input
             type="password"
             required
-            autoComplete="current-password"
+            minLength={6}
+            autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className={fieldClass}
@@ -97,14 +123,14 @@ export function LoginPage() {
           disabled={submitting}
           className="mt-2 inline-flex h-12 items-center justify-center rounded-full bg-ink-button px-6 font-sans text-[14px] font-medium text-cream transition hover:bg-ink-primary disabled:opacity-60"
         >
-          {submitting ? "Signing in..." : "Sign in"}
+          {submitting ? "Creating account..." : "Create account"}
         </button>
       </form>
 
       <p className="mt-6 font-sans text-[13px] leading-[20px] text-ink-muted">
-        New here?{" "}
-        <Link to="/register" className="text-accent-rust hover:text-accent-rust-hi">
-          Create an account &rarr;
+        Already registered?{" "}
+        <Link to="/login" className="text-accent-rust hover:text-accent-rust-hi">
+          Sign in &rarr;
         </Link>
       </p>
     </article>

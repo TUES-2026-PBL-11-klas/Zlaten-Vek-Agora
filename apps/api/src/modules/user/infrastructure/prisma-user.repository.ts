@@ -18,4 +18,12 @@ export class PrismaUserRepository implements IUserRepository {
   async save(data: Omit<UserEntity, "id" | "createdAt">): Promise<UserEntity> {
     return this.prisma.user.create({ data });
   }
+
+  async upsertById(id: string, data: { email: string; name: string }): Promise<UserEntity> {
+    return this.prisma.user.upsert({
+      where: { id },
+      update: { email: data.email },
+      create: { id, email: data.email, name: data.name },
+    });
+  }
 }
