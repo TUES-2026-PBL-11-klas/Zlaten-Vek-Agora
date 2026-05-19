@@ -29,6 +29,31 @@
   --color-persona-terracotta: #c04b3b;
   --color-persona-aubergine: #6b3f5e;
   --color-persona-steel: #6e7e8a;
+
+  --color-status-draft-bg: #e6ddc8;
+  --color-status-draft-ink: #6b6357;
+  --color-status-analyzing-bg: #d8dfe2;
+  --color-status-analyzing-ink: #3f5663;
+  --color-status-pending-bg: #ecdab1;
+  --color-status-pending-ink: #7a5a14;
+  --color-status-running-bg: #cfd9bd;
+  --color-status-running-ink: #3f5942;
+  --color-status-completed-bg: #7b8f6a;
+  --color-status-completed-ink: #f5eedf;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
 }
 
 html {
