@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NewDebatePage } from "@/pages/NewDebatePage";
 import { DebateRoomPage } from "@/pages/DebateRoomPage";
@@ -8,12 +8,17 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/shared/lib/notify";
+import { AgoraGlyph } from "@/features/debates/lib/agora-glyph";
+
+const APP_VERSION = "prototype · v0.3";
 
 function Wordmark() {
   return (
-    <NavLink to="/" className="flex items-baseline gap-2 text-ink-primary">
+    <NavLink to="/" className="flex items-center gap-2 text-ink-primary">
+      <span className="text-ink-primary">
+        <AgoraGlyph size={26} />
+      </span>
       <span className="font-serif text-[22px] leading-none">Agora</span>
-      <span className="text-[11px] uppercase tracking-[0.14em] text-ink-label">debates</span>
     </NavLink>
   );
 }
@@ -35,35 +40,94 @@ function NavItem({ to, end, children }: { to: string; end?: boolean; children: R
   );
 }
 
+function userInitial(email: string | undefined | null): string {
+  if (!email) return "·";
+  const local = email.split("@")[0] ?? "";
+  return (local.charAt(0) || "·").toUpperCase();
+}
+
 function AuthNav() {
   const { session, user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointer = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
 
   if (!session) {
     return (
-      <NavLink
-        to="/login"
-        className="inline-flex h-9 items-center rounded-full px-4 text-[14px] font-medium text-ink-body hover:text-ink-primary"
-      >
-        Sign in
-      </NavLink>
+      <div className="flex items-center gap-4">
+        <span className="hidden text-[12px] tracking-[0.04em] text-ink-label sm:inline">
+          {APP_VERSION}
+        </span>
+        <NavLink
+          to="/login"
+          className="inline-flex h-9 items-center rounded-full px-4 text-[14px] font-medium text-ink-body hover:text-ink-primary"
+        >
+          Sign in
+        </NavLink>
+      </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-[13px] text-ink-muted">{user?.email}</span>
-      <button
-        type="button"
-        onClick={async () => {
-          await signOut();
-          notify.success("Signed out.");
-          navigate("/login", { replace: true });
-        }}
-        className="inline-flex h-9 items-center rounded-full bg-surface px-4 text-[13px] font-medium text-ink-primary transition-colors hover:bg-surface-mut"
-      >
-        Sign out
-      </button>
+    <div className="flex items-center gap-4">
+      <span className="hidden text-[12px] tracking-[0.04em] text-ink-label sm:inline">
+        {APP_VERSION}
+      </span>
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label="Account menu"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hair bg-surface text-[13px] font-medium text-ink-primary transition-colors hover:bg-surface-mut"
+        >
+          {userInitial(user?.email)}
+        </button>
+
+        {open ? (
+          <div
+            role="menu"
+            className="absolute right-0 top-[calc(100%+8px)] z-20 flex w-60 flex-col gap-3 rounded-2xl border border-hair bg-surface p-4 shadow-[0_18px_44px_-22px_rgba(31,27,22,0.45)]"
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] uppercase tracking-[0.14em] text-ink-label">
+                Signed in as
+              </span>
+              <span className="truncate text-[13px] text-ink-primary">{user?.email}</span>
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={async () => {
+                setOpen(false);
+                await signOut();
+                notify.success("Signed out.");
+                navigate("/login", { replace: true });
+              }}
+              className="inline-flex h-9 items-center justify-center rounded-full bg-ink-button text-[13px] font-medium text-cream transition-colors hover:bg-ink-primary"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -77,7 +141,9 @@ function TopBar() {
           <NavItem to="/" end>
             Dashboard
           </NavItem>
-          <NavItem to="/debates/new">New debate</NavItem>
+          <NavItem to="/debates/new">Debate room</NavItem>
+          <NavItem to="/synthesis">Synthesis</NavItem>
+          <NavItem to="/design-system">Design system</NavItem>
         </nav>
         <AuthNav />
       </div>
