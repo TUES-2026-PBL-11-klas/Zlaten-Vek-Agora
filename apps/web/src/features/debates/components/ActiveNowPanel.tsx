@@ -110,7 +110,7 @@ function RailColumn({
 }) {
   const completed = overview?.rounds.completed ?? 0;
   const total = overview?.rounds.total ?? 3;
-  const turns = summary.roundCount * Math.max(1, summary.personaCount);
+  const turns = overview?.turns ?? 0;
 
   return (
     <div className="flex flex-col gap-5 bg-surface-mut px-8 py-8">

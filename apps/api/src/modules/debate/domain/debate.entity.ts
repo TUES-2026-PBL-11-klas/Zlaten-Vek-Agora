@@ -19,4 +19,5 @@ export interface DebateMessageEntity {
   sequence: number;
   createdAt: Date;
   persona: PersonaEntity;
+  round: { roundNumber: number };
 }
