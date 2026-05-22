@@ -10,7 +10,7 @@ export class PrismaDebateMessageRepository implements IDebateMessageRepository {
   async findByDebate(debateId: string): Promise<DebateMessageEntity[]> {
     return this.prisma.debateMessage.findMany({
       where: { debateId },
-      include: { persona: true },
+      include: { persona: true, round: { select: { roundNumber: true } } },
       orderBy: { createdAt: "asc" },
     });
   }
@@ -18,14 +18,17 @@ export class PrismaDebateMessageRepository implements IDebateMessageRepository {
   async findByRound(roundId: string): Promise<DebateMessageEntity[]> {
     return this.prisma.debateMessage.findMany({
       where: { roundId },
-      include: { persona: true },
+      include: { persona: true, round: { select: { roundNumber: true } } },
       orderBy: { sequence: "asc" },
     });
   }
 
   async append(
-    data: Omit<DebateMessageEntity, "id" | "createdAt" | "persona">,
+    data: Omit<DebateMessageEntity, "id" | "createdAt" | "persona" | "round">,
   ): Promise<DebateMessageEntity> {
-    return this.prisma.debateMessage.create({ data, include: { persona: true } });
+    return this.prisma.debateMessage.create({
+      data,
+      include: { persona: true, round: { select: { roundNumber: true } } },
+    });
   }
 }

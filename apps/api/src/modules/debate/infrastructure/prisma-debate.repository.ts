@@ -1,7 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { DebateEntity } from "../domain/debate.entity";
-import { DebateListItem, DebateOverview, IDebateRepository } from "../domain/i-debate.repository";
+import {
+  ChamberStats,
+  DebateListPage,
+  DebateOverview,
+  IDebateRepository,
+} from "../domain/i-debate.repository";
 
 const DEFAULT_TOTAL_ROUNDS = 3;
 
@@ -17,25 +22,30 @@ export class PrismaDebateRepository implements IDebateRepository {
     return this.prisma.debate.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
   }
 
-  async listForUser(userId: string): Promise<DebateListItem[]> {
-    const rows = await this.prisma.debate.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        createdAt: true,
-        personas: {
-          select: { id: true, name: true, color: true },
-          orderBy: { createdAt: "asc" },
-          take: 5,
+  async listForUser(userId: string, page: number, pageSize: number): Promise<DebateListPage> {
+    const [rows, total] = await Promise.all([
+      this.prisma.debate.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
+          personas: {
+            select: { id: true, name: true, color: true },
+            orderBy: { createdAt: "asc" },
+            take: 5,
+          },
+          _count: { select: { personas: true, rounds: true } },
         },
-        _count: { select: { personas: true, rounds: true } },
-      },
-    });
+      }),
+      this.prisma.debate.count({ where: { userId } }),
+    ]);
 
-    return rows.map((row) => ({
+    const items = rows.map((row) => ({
       id: row.id,
       title: row.title,
       status: row.status,
@@ -44,6 +54,31 @@ export class PrismaDebateRepository implements IDebateRepository {
       createdAt: row.createdAt,
       personas: row.personas,
     }));
+
+    return { items, total };
+  }
+
+  async getChamberStats(userId: string): Promise<ChamberStats> {
+    const [totalDebates, totalParticipants, lastMessage, lastDebate] = await Promise.all([
+      this.prisma.debate.count({ where: { userId } }),
+      this.prisma.persona.count({ where: { debate: { userId } } }),
+      this.prisma.debateMessage.findFirst({
+        where: { debate: { userId } },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+      this.prisma.debate.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    return {
+      totalDebates,
+      totalParticipants,
+      lastActiveAt: lastMessage?.createdAt ?? lastDebate?.createdAt ?? null,
+    };
   }
 
   async findOverviewById(id: string): Promise<DebateOverview | null> {
@@ -65,6 +100,7 @@ export class PrismaDebateRepository implements IDebateRepository {
         },
         analysisResult: { select: { keyChanges: true } },
         judgeSummary: { select: { id: true } },
+        _count: { select: { debateMessages: true } },
       },
     });
 
@@ -87,6 +123,7 @@ export class PrismaDebateRepository implements IDebateRepository {
         total: DEFAULT_TOTAL_ROUNDS,
         current: current ? { number: current.roundNumber, phase: current.phase } : null,
       },
+      turns: row._count.debateMessages,
       keyChanges: extractKeyChanges(row.analysisResult?.keyChanges),
       hasSynthesis: row.judgeSummary !== null,
     };

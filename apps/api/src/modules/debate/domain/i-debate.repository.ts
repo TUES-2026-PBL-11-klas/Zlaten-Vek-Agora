@@ -22,14 +22,27 @@ export interface DebateOverview {
     total: number;
     current: { number: number; phase: string } | null;
   };
+  turns: number;
   keyChanges: string[];
   hasSynthesis: boolean;
+}
+
+export interface DebateListPage {
+  items: DebateListItem[];
+  total: number;
+}
+
+export interface ChamberStats {
+  totalDebates: number;
+  totalParticipants: number;
+  lastActiveAt: Date | null;
 }
 
 export interface IDebateRepository {
   findById(id: string): Promise<DebateEntity | null>;
   findByUser(userId: string): Promise<DebateEntity[]>;
-  listForUser(userId: string): Promise<DebateListItem[]>;
+  listForUser(userId: string, page: number, pageSize: number): Promise<DebateListPage>;
+  getChamberStats(userId: string): Promise<ChamberStats>;
   findOverviewById(id: string): Promise<DebateOverview | null>;
   save(debate: Omit<DebateEntity, "id" | "createdAt">): Promise<DebateEntity>;
   updateStatus(id: string, status: string): Promise<DebateEntity>;

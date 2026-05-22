@@ -4,7 +4,7 @@ export interface IDebateMessageRepository {
   findByDebate(debateId: string): Promise<DebateMessageEntity[]>;
   findByRound(roundId: string): Promise<DebateMessageEntity[]>;
   append(
-    message: Omit<DebateMessageEntity, "id" | "createdAt" | "persona">,
+    message: Omit<DebateMessageEntity, "id" | "createdAt" | "persona" | "round">,
   ): Promise<DebateMessageEntity>;
 }
 

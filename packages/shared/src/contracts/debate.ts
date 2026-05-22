@@ -35,6 +35,27 @@ export interface DebateOverviewDto {
     total: number;
     current: { number: number; phase: string } | null;
   };
+  turns: number;
   keyChanges: string[];
   hasSynthesis: boolean;
+}
+
+export interface DebateChamberStatsDto {
+  totalDebates: number;
+  totalParticipants: number;
+  lastActiveAt: string | null;
+}
+
+export interface DebateDetailMessageDto {
+  id: string;
+  roundId: string;
+  roundNumber: number;
+  sequence: number;
+  content: string;
+  createdAt: string;
+  persona: { id: string; name: string; demographic: string; color: string };
+}
+
+export interface DebateDetailDto extends DebateOverviewDto {
+  messages: DebateDetailMessageDto[];
 }
