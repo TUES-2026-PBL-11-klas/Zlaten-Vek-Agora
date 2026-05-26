@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { DebateStatus } from "@agora/shared";
+import { DebateStatus, Emotion } from "@agora/shared";
 import { DebateService } from "./debate.service";
 import {
   DEBATE_REPOSITORY,
@@ -51,6 +51,7 @@ describe("DebateService", () => {
     personaId: "p1",
     content: "Tenants need predictable rents.",
     sequence: 0,
+    emotion: Emotion.Calm,
     createdAt: new Date("2026-04-11T09:05:00.000Z"),
     round: { roundNumber: 1 },
     persona: {
@@ -208,12 +209,18 @@ describe("DebateService", () => {
           id: "msg-1",
           roundId: "round-1",
           roundNumber: 1,
-          sequence: 0,
+          turnIndex: 0,
+          emotion: Emotion.Calm,
           content: "Tenants need predictable rents.",
           createdAt: "2026-04-11T09:05:00.000Z",
           persona: { id: "p1", name: "Mira K.", demographic: "Long-term tenant", color: "sage" },
         },
       ]);
+      expect(result.activeTurn).toEqual({
+        roundNumber: 3,
+        turnIndex: 0,
+        personaId: "p1",
+      });
     });
 
     it("throws DebateNotFoundException for another user's debate without loading messages", async () => {

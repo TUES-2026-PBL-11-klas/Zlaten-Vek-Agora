@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
+import { passportJwtSecret } from "jwks-rsa";
 import { AuthenticatedUser, SupabaseJwtPayload } from "../auth.types";
 
 export const SUPABASE_STRATEGY_NAME = "supabase";
@@ -9,16 +10,26 @@ export const SUPABASE_STRATEGY_NAME = "supabase";
 @Injectable()
 export class SupabaseJwtStrategy extends PassportStrategy(Strategy, SUPABASE_STRATEGY_NAME) {
   constructor(config: ConfigService) {
-    const secret = config.get<string>("SUPABASE_JWT_SECRET");
-    if (!secret) {
-      throw new Error("SUPABASE_JWT_SECRET is not configured");
+    const supabaseUrl = config.get<string>("SUPABASE_URL");
+    const legacySecret = config.get<string>("SUPABASE_JWT_SECRET");
+
+    if (!supabaseUrl && !legacySecret) {
+      throw new Error("SUPABASE_URL or SUPABASE_JWT_SECRET must be configured");
     }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret,
-      algorithms: ["HS256"],
+      algorithms: ["HS256", "RS256", "ES256"],
+      secretOrKeyProvider: supabaseUrl
+        ? passportJwtSecret({
+            cache: true,
+            rateLimit: true,
+            jwksRequestsPerMinute: 10,
+            jwksUri: `${supabaseUrl.replace(/\/$/, "")}/auth/v1/.well-known/jwks.json`,
+          })
+        : (_req: unknown, _token: unknown, done: (err: Error | null, key?: string) => void) =>
+            done(null, legacySecret!),
     });
   }
 

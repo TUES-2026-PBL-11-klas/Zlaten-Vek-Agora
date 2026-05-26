@@ -1,4 +1,5 @@
 import type { DebateStatus } from "../enums/debate-status";
+import type { Emotion } from "../enums/emotion";
 
 export interface CreateDebateDto {
   topic: string;
@@ -50,12 +51,20 @@ export interface DebateDetailMessageDto {
   id: string;
   roundId: string;
   roundNumber: number;
-  sequence: number;
+  turnIndex: number;
+  emotion: Emotion;
   content: string;
   createdAt: string;
   persona: { id: string; name: string; demographic: string; color: string };
 }
 
+export interface ActiveTurnDto {
+  roundNumber: number;
+  turnIndex: number;
+  personaId: string;
+}
+
 export interface DebateDetailDto extends DebateOverviewDto {
   messages: DebateDetailMessageDto[];
+  activeTurn: ActiveTurnDto | null;
 }

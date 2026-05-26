@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type {
+  ActiveTurnDto,
   DebateChamberStatsDto,
   DebateDetailDto,
   DebateListItemDto,
@@ -7,6 +8,7 @@ import type {
   Paginated,
 } from "@agora/shared";
 import { DebateStatus } from "@agora/shared";
+import { DebateMessageEntity } from "./domain/debate.entity";
 import { DEBATE_REPOSITORY, DebateOverview, IDebateRepository } from "./domain/i-debate.repository";
 import {
   DEBATE_MESSAGE_REPOSITORY,
@@ -67,7 +69,8 @@ export class DebateService {
         id: message.id,
         roundId: message.roundId,
         roundNumber: message.round.roundNumber,
-        sequence: message.sequence,
+        turnIndex: message.sequence,
+        emotion: message.emotion,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
         persona: {
@@ -77,6 +80,7 @@ export class DebateService {
           color: message.persona.color,
         },
       })),
+      activeTurn: computeActiveTurn(overview, messages),
     };
   }
 
@@ -105,4 +109,19 @@ function toOverviewDto(overview: DebateOverview): DebateOverviewDto {
 
 function toDebateStatus(value: string): DebateStatus {
   return value as DebateStatus;
+}
+
+function computeActiveTurn(
+  overview: DebateOverview,
+  messages: DebateMessageEntity[],
+): ActiveTurnDto | null {
+  if (toDebateStatus(overview.status) !== DebateStatus.Running) return null;
+  if (!overview.rounds.current || overview.personas.length === 0) return null;
+
+  const currentRoundNumber = overview.rounds.current.number;
+  const inRound = messages.filter((m) => m.round.roundNumber === currentRoundNumber);
+  const turnIndex = inRound.length;
+  const personaId = overview.personas[turnIndex % overview.personas.length].id;
+
+  return { roundNumber: currentRoundNumber, turnIndex, personaId };
 }

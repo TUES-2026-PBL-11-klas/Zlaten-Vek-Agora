@@ -11,7 +11,7 @@ export class PrismaDebateMessageRepository implements IDebateMessageRepository {
     return this.prisma.debateMessage.findMany({
       where: { debateId },
       include: { persona: true, round: { select: { roundNumber: true } } },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ round: { roundNumber: "asc" } }, { sequence: "asc" }],
     });
   }
 
