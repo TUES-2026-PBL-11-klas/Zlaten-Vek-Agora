@@ -56,6 +56,8 @@ Fixed mapping. One persona, one hue, used for avatar fill, quote-card accent bar
 
 Moods reuse the same palette: `calm` (sage), `confident` (mustard), `pensive` (aubergine), `anxious` (steel `#6E7E8A`), `tense` (terracotta).
 
+`emotion-color.ts` keeps a parallel `EMOTION_HEX` map of raw hex values alongside the CSS-var map. This is intentional: `box-shadow` with alpha (e.g. `#7B8F6A66`) requires a literal hex; CSS custom properties can't carry an inline alpha suffix.
+
 ---
 
 ## Typography

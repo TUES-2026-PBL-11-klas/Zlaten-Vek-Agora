@@ -1,9 +1,19 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDebateDetailQuery } from "@/features/debates/api/use-debate-detail-query";
 import { StatusPill } from "@/features/debates/components/StatusPill";
-import { PersonaAvatar } from "@/features/debates/components/PersonaAvatar";
 import { DebateTranscript } from "@/features/debates/components/DebateTranscript";
 import { debateCode, formatDate } from "@/features/debates/lib/debate-code";
+import { usePlayback } from "@/features/debates/hooks/use-playback";
+import { DebateFlowStepper } from "@/features/debates/components/room/DebateFlowStepper";
+import { StageView } from "@/features/debates/components/room/StageView";
+import { BillSummaryPanel } from "@/features/debates/components/room/BillSummaryPanel";
+import { PersonaListPanel } from "@/features/debates/components/room/PersonaListPanel";
+import { ActiveQuoteCard } from "@/features/debates/components/room/ActiveQuoteCard";
+import { PlaybackControls } from "@/features/debates/components/room/PlaybackControls";
+import { PersonaAvatar } from "@/features/debates/components/PersonaAvatar";
+
+type ViewMode = "stage" | "chamber";
 
 export function DebateRoomPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,42 +42,131 @@ export function DebateRoomPage() {
     );
   }
 
-  const debate = detail.data;
+  return <DebateRoomContent debate={detail.data} />;
+}
+
+function DebateRoomContent({
+  debate,
+}: {
+  debate: NonNullable<ReturnType<typeof useDebateDetailQuery>["data"]>;
+}) {
+  const [view, setView] = useState<ViewMode>("stage");
+  const playback = usePlayback(debate.messages);
+
   const current = debate.rounds.current;
+  const currentRound = playback.currentMessage?.roundNumber ?? current?.number ?? 1;
+  const code = debateCode(debate.title, debate.createdAt, debate.id);
+  const roundLabel = `Round ${currentRound} of ${debate.rounds.total}`;
+  const uploadDate = formatDate(debate.createdAt);
 
   return (
-    <div className="flex flex-col gap-12">
-      <header className="flex flex-col gap-5 border-b border-hair pb-10">
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-col gap-4 border-b border-hair pb-8">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink-muted">
-            {debateCode(debate.title, debate.createdAt, debate.id)}
+            {code} &middot; uploaded {uploadDate}
           </span>
-          <StatusPill status={debate.status} />
+          <ViewToggle active={view} onChange={setView} />
         </div>
-        <h1 className="font-serif text-[44px] leading-[1.05] text-ink-primary sm:text-[56px]">
-          {debate.title}
-        </h1>
-
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <p className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink-label">
-            Round {current?.number ?? debate.rounds.completed} of {debate.rounds.total}
-            {current ? ` · ${current.phase}` : ""}
-          </p>
-          <p className="text-[13px] text-ink-muted">
-            {debate.rounds.completed}/{debate.rounds.total} rounds done · {debate.turns} turns ·
-            started {formatDate(debate.createdAt)}
-          </p>
-          {debate.hasSynthesis ? (
-            <a
-              href="#synthesis"
-              className="text-[13px] text-accent-rust underline-offset-4 hover:underline"
-            >
-              Jump to synthesis &rarr;
-            </a>
-          ) : null}
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="font-serif text-[36px] leading-[1.1] text-ink-primary lg:text-[44px]">
+            {debate.title}
+          </h1>
+          <StatusPill status={debate.status} />
         </div>
       </header>
 
+      {view === "stage" ? (
+        <>
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[220px_1fr_280px]">
+            <div className="hidden lg:block">
+              <DebateFlowStepper currentRound={currentRound} hasSynthesis={debate.hasSynthesis} />
+            </div>
+
+            <StageView
+              personas={debate.personas}
+              activePersonaId={playback.currentMessage?.persona.id ?? null}
+              allMessages={playback.messages}
+              currentIndex={playback.currentIndex}
+              billCode={code}
+              roundLabel={roundLabel}
+            />
+
+            <div className="flex flex-col gap-4">
+              <BillSummaryPanel keyChanges={debate.keyChanges} />
+              <PersonaListPanel
+                personas={debate.personas}
+                activePersonaId={playback.currentMessage?.persona.id ?? null}
+              />
+            </div>
+          </div>
+
+          {playback.currentMessage && <ActiveQuoteCard message={playback.currentMessage} />}
+
+          <PlaybackControls
+            isPlaying={playback.isPlaying}
+            canPrev={playback.canPrev}
+            canNext={playback.canNext}
+            progress={playback.progress}
+            turnLabel={playback.turnLabel}
+            totalTurns={playback.totalTurns}
+            hasSynthesis={debate.hasSynthesis}
+            onPrev={playback.prev}
+            onNext={playback.next}
+            onPlayPause={playback.isPlaying ? playback.pause : playback.play}
+            onSeek={playback.seek}
+            onSkipToSynthesis={playback.skipToSynthesis}
+          />
+        </>
+      ) : (
+        <ChamberView debate={debate} />
+      )}
+    </div>
+  );
+}
+
+function ViewToggle({
+  active,
+  onChange,
+}: {
+  active: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-full border border-hair">
+      <button
+        type="button"
+        onClick={() => onChange("stage")}
+        aria-pressed={active === "stage"}
+        className={[
+          "px-4 py-1.5 text-[13px] font-medium transition-colors",
+          active === "stage" ? "bg-ink-button text-cream" : "text-ink-body hover:bg-surface-mut",
+        ].join(" ")}
+      >
+        Stage view
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("chamber")}
+        aria-pressed={active === "chamber"}
+        className={[
+          "px-4 py-1.5 text-[13px] font-medium transition-colors",
+          active === "chamber" ? "bg-ink-button text-cream" : "text-ink-body hover:bg-surface-mut",
+        ].join(" ")}
+      >
+        Chamber view
+      </button>
+    </div>
+  );
+}
+
+function ChamberView({
+  debate,
+}: {
+  debate: NonNullable<ReturnType<typeof useDebateDetailQuery>["data"]>;
+}) {
+  return (
+    <>
       <section className="flex flex-col gap-4">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-label">
           At the table
@@ -91,21 +190,31 @@ export function DebateRoomPage() {
         </h2>
         <DebateTranscript messages={debate.messages} />
       </section>
-    </div>
+    </>
   );
 }
 
 function DebateRoomSkeleton() {
   return (
     <div className="flex flex-col gap-8">
-      <div className="h-4 w-32 animate-pulse rounded bg-surface-mut" />
-      <div className="h-12 w-3/4 animate-pulse rounded bg-surface-mut" />
-      <div className="h-4 w-1/2 animate-pulse rounded bg-surface-mut" />
-      <div className="mt-6 flex flex-col gap-4">
-        {Array.from({ length: 3 }).map((_, idx) => (
-          <div key={idx} className="h-28 animate-pulse rounded-2xl bg-surface" />
-        ))}
+      <div className="flex flex-col gap-3 border-b border-hair pb-8">
+        <div className="h-4 w-48 animate-pulse rounded bg-surface-mut" />
+        <div className="h-10 w-3/4 animate-pulse rounded bg-surface-mut" />
       </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr_280px]">
+        <div className="hidden space-y-4 lg:block">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-surface-mut" />
+          ))}
+        </div>
+        <div className="animate-pulse rounded-2xl bg-surface" style={{ aspectRatio: "4 / 3.2" }} />
+        <div className="space-y-4">
+          <div className="h-48 animate-pulse rounded-2xl bg-surface" />
+          <div className="h-56 animate-pulse rounded-2xl bg-surface" />
+        </div>
+      </div>
+      <div className="h-32 animate-pulse rounded-2xl bg-surface" />
+      <div className="h-16 animate-pulse rounded-2xl bg-surface" />
     </div>
   );
 }
