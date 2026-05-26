@@ -8,10 +8,10 @@
  * Run: pnpm --filter @agora/api spike:judge
  * Requires: OPENAI_API_KEY and GOOGLE_API_KEY in apps/api/.env
  */
-import 'dotenv/config';
-import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { type CallMetrics, calcCost, printComparison } from './utils/metrics';
+import "dotenv/config";
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { type CallMetrics, calcCost, printComparison } from "./utils/metrics";
 
 const TRANSCRIPT = `
 === DEBATE TRANSCRIPT ===
@@ -103,17 +103,17 @@ async function singleRunGpt5(client: OpenAI): Promise<RunResult> {
   const start = Date.now();
   let firstTokenMs = 0;
   let gotFirstToken = false;
-  let output = '';
+  let output = "";
   let promptTokens = 0;
   let completionTokens = 0;
 
   const stream = await client.chat.completions.create({
-    model: 'gpt-5',
+    model: "gpt-5",
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: USER_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: USER_PROMPT },
     ],
-    response_format: { type: 'json_object' },
+    response_format: { type: "json_object" },
     stream: true,
     stream_options: { include_usage: true },
   });
@@ -123,7 +123,7 @@ async function singleRunGpt5(client: OpenAI): Promise<RunResult> {
       promptTokens = chunk.usage.prompt_tokens;
       completionTokens = chunk.usage.completion_tokens;
     }
-    const token = chunk.choices[0]?.delta?.content ?? '';
+    const token = chunk.choices[0]?.delta?.content ?? "";
     if (token) {
       if (!gotFirstToken) {
         firstTokenMs = Date.now() - start;
@@ -147,11 +147,13 @@ async function singleRunGpt5(client: OpenAI): Promise<RunResult> {
   return { valid, firstTokenMs, totalMs: Date.now() - start, promptTokens, completionTokens };
 }
 
-async function singleRunGemini(model: ReturnType<InstanceType<typeof GoogleGenerativeAI>['getGenerativeModel']>): Promise<RunResult> {
+async function singleRunGemini(
+  model: ReturnType<InstanceType<typeof GoogleGenerativeAI>["getGenerativeModel"]>,
+): Promise<RunResult> {
   const start = Date.now();
   let firstTokenMs = 0;
   let gotFirstToken = false;
-  let output = '';
+  let output = "";
 
   const result = await model.generateContentStream(USER_PROMPT);
 
@@ -185,21 +187,21 @@ async function singleRunGemini(model: ReturnType<InstanceType<typeof GoogleGener
   return { valid, firstTokenMs, totalMs: Date.now() - start, promptTokens, completionTokens };
 }
 
-function summarise(results: RunResult[], model: 'gpt-5' | 'gemini-2.5-flash'): CallMetrics {
-  const validCount = results.filter(r => r.valid).length;
+function summarise(results: RunResult[], model: "gpt-5" | "gemini-2.5-flash"): CallMetrics {
+  const validCount = results.filter((r) => r.valid).length;
   const avg = <K extends keyof RunResult>(key: K) =>
     Math.round(results.reduce((s, r) => s + (r[key] as number), 0) / results.length);
 
-  const avgPrompt = avg('promptTokens');
-  const avgCompletion = avg('completionTokens');
+  const avgPrompt = avg("promptTokens");
+  const avgCompletion = avg("completionTokens");
 
   console.log(`${model}: ${validCount}/${RUNS} valid JSON responses`);
 
   return {
     model,
     task: `judge-synthesis (${validCount}/${RUNS} valid JSON)`,
-    firstTokenMs: avg('firstTokenMs'),
-    totalMs: avg('totalMs'),
+    firstTokenMs: avg("firstTokenMs"),
+    totalMs: avg("totalMs"),
     promptTokens: avgPrompt,
     completionTokens: avgCompletion,
     costUsd: calcCost(model, avgPrompt, avgCompletion),
@@ -207,51 +209,51 @@ function summarise(results: RunResult[], model: 'gpt-5' | 'gemini-2.5-flash'): C
 }
 
 async function main() {
-  console.log('=== LLM Spike: JudgeAgent ===');
+  console.log("=== LLM Spike: JudgeAgent ===");
   console.log(`Comparing GPT-5 vs Gemini 2.5 Flash on transcript synthesis (${RUNS} runs each)\n`);
 
   const openaiKey = process.env.OPENAI_API_KEY;
   const googleKey = process.env.GOOGLE_API_KEY;
-  if (!openaiKey) throw new Error('OPENAI_API_KEY is not set');
-  if (!googleKey) throw new Error('GOOGLE_API_KEY is not set');
+  if (!openaiKey) throw new Error("OPENAI_API_KEY is not set");
+  if (!googleKey) throw new Error("GOOGLE_API_KEY is not set");
 
   const openaiClient = new OpenAI({ apiKey: openaiKey });
   const genAI = new GoogleGenerativeAI(googleKey);
   const geminiModel = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    generationConfig: { responseMimeType: 'application/json' },
+    model: "gemini-2.5-flash",
+    generationConfig: { responseMimeType: "application/json" },
     systemInstruction: SYSTEM_PROMPT,
   });
 
-  console.log('Running GPT-5...');
+  console.log("Running GPT-5...");
   const gptResults: RunResult[] = [];
   for (let i = 0; i < RUNS; i++) {
     process.stdout.write(`  Run ${i + 1}/${RUNS}... `);
     const r = await singleRunGpt5(openaiClient);
     gptResults.push(r);
-    console.log(`${r.valid ? 'VALID' : 'INVALID'} (${r.totalMs}ms)`);
+    console.log(`${r.valid ? "VALID" : "INVALID"} (${r.totalMs}ms)`);
   }
 
-  console.log('\nRunning Gemini 2.5 Flash...');
+  console.log("\nRunning Gemini 2.5 Flash...");
   const geminiResults: RunResult[] = [];
   for (let i = 0; i < RUNS; i++) {
     process.stdout.write(`  Run ${i + 1}/${RUNS}... `);
     const r = await singleRunGemini(geminiModel);
     geminiResults.push(r);
-    console.log(`${r.valid ? 'VALID' : 'INVALID'} (${r.totalMs}ms)`);
+    console.log(`${r.valid ? "VALID" : "INVALID"} (${r.totalMs}ms)`);
   }
 
-  console.log('');
-  const gptMetrics = summarise(gptResults, 'gpt-5');
-  const geminiMetrics = summarise(geminiResults, 'gemini-2.5-flash');
+  console.log("");
+  const gptMetrics = summarise(gptResults, "gpt-5");
+  const geminiMetrics = summarise(geminiResults, "gemini-2.5-flash");
 
   printComparison(gptMetrics, geminiMetrics);
 
   // Print a sample output from the last GPT-5 run for qualitative review
-  console.log('Sample GPT-5 judge output (last run) - re-run to see full text\n');
+  console.log("Sample GPT-5 judge output (last run) - re-run to see full text\n");
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

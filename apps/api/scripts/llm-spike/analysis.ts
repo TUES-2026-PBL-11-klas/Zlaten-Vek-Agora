@@ -7,10 +7,10 @@
  * Run: pnpm --filter @agora/api spike:analysis
  * Requires: OPENAI_API_KEY and GOOGLE_API_KEY in apps/api/.env
  */
-import 'dotenv/config';
-import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { type CallMetrics, calcCost, printComparison } from './utils/metrics';
+import "dotenv/config";
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { type CallMetrics, calcCost, printComparison } from "./utils/metrics";
 
 const BILL_TEXT = `
 ЗАКОН ЗА ИЗМЕНЕНИЕ И ДОПЪЛНЕНИЕ НА КОДЕКСА ЗА СОЦИАЛНО ОСИГУРЯВАНЕ
@@ -73,25 +73,25 @@ const USER_PROMPT = `Bill text:\n\n${BILL_TEXT}`;
 
 async function runGpt5(): Promise<CallMetrics> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
 
   const client = new OpenAI({ apiKey });
   const start = Date.now();
   let firstTokenMs = 0;
   let gotFirstToken = false;
-  let output = '';
+  let output = "";
   let promptTokens = 0;
   let completionTokens = 0;
 
-  console.log('\n--- GPT-5 Analysis ---');
+  console.log("\n--- GPT-5 Analysis ---");
 
   const stream = await client.chat.completions.create({
-    model: 'gpt-5',
+    model: "gpt-5",
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: USER_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: USER_PROMPT },
     ],
-    response_format: { type: 'json_object' },
+    response_format: { type: "json_object" },
     stream: true,
     stream_options: { include_usage: true },
   });
@@ -101,7 +101,7 @@ async function runGpt5(): Promise<CallMetrics> {
       promptTokens = chunk.usage.prompt_tokens;
       completionTokens = chunk.usage.completion_tokens;
     }
-    const token = chunk.choices[0]?.delta?.content ?? '';
+    const token = chunk.choices[0]?.delta?.content ?? "";
     if (token) {
       if (!gotFirstToken) {
         firstTokenMs = Date.now() - start;
@@ -113,43 +113,43 @@ async function runGpt5(): Promise<CallMetrics> {
   }
 
   const totalMs = Date.now() - start;
-  console.log('\n');
+  console.log("\n");
 
   try {
     const parsed = JSON.parse(output) as { groups: unknown[] };
     console.log(`GPT-5 extracted ${parsed.groups?.length ?? 0} groups`);
   } catch {
-    console.error('GPT-5: JSON parse failed');
+    console.error("GPT-5: JSON parse failed");
   }
 
   return {
-    model: 'gpt-5',
-    task: 'bill-analysis',
+    model: "gpt-5",
+    task: "bill-analysis",
     firstTokenMs,
     totalMs,
     promptTokens,
     completionTokens,
-    costUsd: calcCost('gpt-5', promptTokens, completionTokens),
+    costUsd: calcCost("gpt-5", promptTokens, completionTokens),
   };
 }
 
 async function runGemini(): Promise<CallMetrics> {
   const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) throw new Error('GOOGLE_API_KEY is not set');
+  if (!apiKey) throw new Error("GOOGLE_API_KEY is not set");
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    generationConfig: { responseMimeType: 'application/json' },
+    model: "gemini-2.5-flash",
+    generationConfig: { responseMimeType: "application/json" },
     systemInstruction: SYSTEM_PROMPT,
   });
 
   const start = Date.now();
   let firstTokenMs = 0;
   let gotFirstToken = false;
-  let output = '';
+  let output = "";
 
-  console.log('\n--- Gemini 2.5 Flash Analysis ---');
+  console.log("\n--- Gemini 2.5 Flash Analysis ---");
 
   const result = await model.generateContentStream(USER_PROMPT);
 
@@ -166,7 +166,7 @@ async function runGemini(): Promise<CallMetrics> {
   }
 
   const totalMs = Date.now() - start;
-  console.log('\n');
+  console.log("\n");
 
   const response = await result.response;
   const usage = response.usageMetadata;
@@ -177,23 +177,23 @@ async function runGemini(): Promise<CallMetrics> {
     const parsed = JSON.parse(output) as { groups: unknown[] };
     console.log(`Gemini extracted ${parsed.groups?.length ?? 0} groups`);
   } catch {
-    console.error('Gemini: JSON parse failed');
+    console.error("Gemini: JSON parse failed");
   }
 
   return {
-    model: 'gemini-2.5-flash',
-    task: 'bill-analysis',
+    model: "gemini-2.5-flash",
+    task: "bill-analysis",
     firstTokenMs,
     totalMs,
     promptTokens,
     completionTokens,
-    costUsd: calcCost('gemini-2.5-flash', promptTokens, completionTokens),
+    costUsd: calcCost("gemini-2.5-flash", promptTokens, completionTokens),
   };
 }
 
 async function main() {
-  console.log('=== LLM Spike: AnalysisAgent ===');
-  console.log('Comparing GPT-5 vs Gemini 2.5 Flash on bill group extraction\n');
+  console.log("=== LLM Spike: AnalysisAgent ===");
+  console.log("Comparing GPT-5 vs Gemini 2.5 Flash on bill group extraction\n");
 
   const gptMetrics = await runGpt5();
   const geminiMetrics = await runGemini();
@@ -201,7 +201,7 @@ async function main() {
   printComparison(gptMetrics, geminiMetrics);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
