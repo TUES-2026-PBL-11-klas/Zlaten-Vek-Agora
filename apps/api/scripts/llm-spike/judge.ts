@@ -248,9 +248,6 @@ async function main() {
   const geminiMetrics = summarise(geminiResults, "gemini-2.5-flash");
 
   printComparison(gptMetrics, geminiMetrics);
-
-  // Print a sample output from the last GPT-5 run for qualitative review
-  console.log("Sample GPT-5 judge output (last run) - re-run to see full text\n");
 }
 
 main().catch((err) => {

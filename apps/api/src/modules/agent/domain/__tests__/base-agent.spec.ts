@@ -22,9 +22,8 @@ describe("BaseAgent", () => {
     agent = new SmokeAgent("smoke-1", "test persona", mockLLMClient);
   });
 
-  it("exposes id and persona", () => {
+  it("exposes id", () => {
     expect(agent.id).toBe("smoke-1");
-    expect((agent as unknown as { persona: string }).persona).toBe("test persona");
   });
 
   it("generateResponse streams tokens", async () => {

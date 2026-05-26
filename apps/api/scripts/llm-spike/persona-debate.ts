@@ -76,6 +76,7 @@ Now respond as your character in 3-5 sentences. Address at least one point raise
 async function runPersonaRound(
   persona: Persona,
   model: "gpt-5" | "gemini-2.5-flash",
+  clients: { openai: OpenAI; genAI: GoogleGenerativeAI },
 ): Promise<CallMetrics> {
   const start = Date.now();
   let firstTokenMs = 0;
@@ -86,11 +87,7 @@ async function runPersonaRound(
   const userContent = `Topic: ${TOPIC}\n\n${ROUND_CONTEXT}`;
 
   if (model === "gpt-5") {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
-    const client = new OpenAI({ apiKey });
-
-    const stream = await client.chat.completions.create({
+    const stream = await clients.openai.chat.completions.create({
       model: "gpt-5",
       messages: [
         { role: "system", content: persona.systemPrompt },
@@ -115,10 +112,7 @@ async function runPersonaRound(
       }
     }
   } else {
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) throw new Error("GOOGLE_API_KEY is not set");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const geminiModel = genAI.getGenerativeModel({
+    const geminiModel = clients.genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       systemInstruction: persona.systemPrompt,
     });
@@ -155,12 +149,15 @@ async function runPersonaRound(
   };
 }
 
-async function runAllPersonas(model: "gpt-5" | "gemini-2.5-flash"): Promise<CallMetrics[]> {
+async function runAllPersonas(
+  model: "gpt-5" | "gemini-2.5-flash",
+  clients: { openai: OpenAI; genAI: GoogleGenerativeAI },
+): Promise<CallMetrics[]> {
   const results: CallMetrics[] = [];
 
   for (const persona of PERSONAS) {
     console.log(`\n--- ${model}: ${persona.name} (${persona.occupation}) ---`);
-    const metrics = await runPersonaRound(persona, model);
+    const metrics = await runPersonaRound(persona, model, clients);
     console.log("\n");
     results.push(metrics);
   }
@@ -188,11 +185,21 @@ async function main() {
   console.log("=== LLM Spike: PersonaAgent ===");
   console.log("Comparing GPT-5 vs Gemini 2.5 Flash on persona debate (1 round, 3 personas)\n");
 
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const googleKey = process.env.GOOGLE_API_KEY;
+  if (!openaiKey) throw new Error("OPENAI_API_KEY is not set");
+  if (!googleKey) throw new Error("GOOGLE_API_KEY is not set");
+
+  const clients = {
+    openai: new OpenAI({ apiKey: openaiKey }),
+    genAI: new GoogleGenerativeAI(googleKey),
+  };
+
   console.log("\n====== GPT-5 ROUND ======");
-  const gptResults = await runAllPersonas("gpt-5");
+  const gptResults = await runAllPersonas("gpt-5", clients);
 
   console.log("\n====== GEMINI 2.5 FLASH ROUND ======");
-  const geminiResults = await runAllPersonas("gemini-2.5-flash");
+  const geminiResults = await runAllPersonas("gemini-2.5-flash", clients);
 
   const gptAvg = aggregateMetrics(gptResults, "gpt-5");
   const geminiAvg = aggregateMetrics(geminiResults, "gemini-2.5-flash");

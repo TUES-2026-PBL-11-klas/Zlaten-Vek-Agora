@@ -10,7 +10,9 @@ export class OpenAIStreamingClient implements ILLMClient {
   private readonly defaultModel: string;
 
   constructor(private readonly config: ConfigService) {
-    this.client = new OpenAI({ apiKey: this.config.get<string>("OPENAI_API_KEY") ?? "" });
+    const apiKey = this.config.get<string>("OPENAI_API_KEY");
+    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
+    this.client = new OpenAI({ apiKey });
     this.defaultModel = this.config.get<string>("OPENAI_DEFAULT_MODEL") ?? "gpt-4o-mini";
   }
 

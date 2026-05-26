@@ -82,4 +82,25 @@ describe("OpenAIStreamingClient", () => {
 
     expect(tokens).toEqual(["real"]);
   });
+
+  it("propagates API errors from create", async () => {
+    mockCreate.mockRejectedValue(new Error("network failure"));
+
+    await expect(async () => {
+      for await (const _ of client.streamCompletion([{ role: "user", content: "x" }])) {
+        // drain
+      }
+    }).rejects.toThrow("network failure");
+  });
+
+  it("throws on missing API key at construction", () => {
+    const config = {
+      get: (key: string) => {
+        if (key === "OPENAI_DEFAULT_MODEL") return "gpt-4o-mini";
+        return undefined;
+      },
+    } as unknown as ConfigService;
+
+    expect(() => new OpenAIStreamingClient(config)).toThrow("OPENAI_API_KEY is not configured");
+  });
 });
