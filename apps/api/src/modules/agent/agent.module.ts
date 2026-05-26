@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { AgentController } from './agent.controller';
-import { AgentService } from './agent.service';
-import { LLM_CLIENT } from './domain/i-llm-client';
-import { OpenAIStreamingClient } from './infrastructure/openai-streaming-client';
+import { Module } from "@nestjs/common";
+import { AgentController } from "./agent.controller";
+import { AgentService } from "./agent.service";
+import { LLM_CLIENT } from "./domain/i-llm-client";
+import { OpenAIStreamingClient } from "./infrastructure/openai-streaming-client";
 
 @Module({
   controllers: [AgentController],

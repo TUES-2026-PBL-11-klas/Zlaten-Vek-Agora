@@ -1,5 +1,5 @@
-import { ConfigService } from '@nestjs/config';
-import { OpenAIStreamingClient } from '../openai-streaming-client';
+import { ConfigService } from "@nestjs/config";
+import { OpenAIStreamingClient } from "../openai-streaming-client";
 
 const mockStream = async function* (tokens: string[]) {
   for (const token of tokens) {
@@ -9,7 +9,7 @@ const mockStream = async function* (tokens: string[]) {
 
 const mockCreate = jest.fn();
 
-jest.mock('openai', () => ({
+jest.mock("openai", () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
     chat: {
@@ -17,18 +17,18 @@ jest.mock('openai', () => ({
         create: mockCreate,
       },
     },
-    baseURL: 'https://api.openai.com',
+    baseURL: "https://api.openai.com",
   })),
 }));
 
-describe('OpenAIStreamingClient', () => {
+describe("OpenAIStreamingClient", () => {
   let client: OpenAIStreamingClient;
 
   beforeEach(() => {
     const config = {
       get: (key: string) => {
-        if (key === 'OPENAI_API_KEY') return 'test-key';
-        if (key === 'OPENAI_DEFAULT_MODEL') return 'gpt-4o-mini';
+        if (key === "OPENAI_API_KEY") return "test-key";
+        if (key === "OPENAI_DEFAULT_MODEL") return "gpt-4o-mini";
         return undefined;
       },
     } as unknown as ConfigService;
@@ -38,48 +38,48 @@ describe('OpenAIStreamingClient', () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  it('yields tokens from the OpenAI stream', async () => {
-    mockCreate.mockResolvedValue(mockStream(['Hello', ', ', 'world']));
+  it("yields tokens from the OpenAI stream", async () => {
+    mockCreate.mockResolvedValue(mockStream(["Hello", ", ", "world"]));
 
     const tokens: string[] = [];
-    for await (const t of client.streamCompletion([{ role: 'user', content: 'Hi' }])) {
+    for await (const t of client.streamCompletion([{ role: "user", content: "Hi" }])) {
       tokens.push(t);
     }
 
-    expect(tokens).toEqual(['Hello', ', ', 'world']);
+    expect(tokens).toEqual(["Hello", ", ", "world"]);
     expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'gpt-4o-mini', stream: true }),
+      expect.objectContaining({ model: "gpt-4o-mini", stream: true }),
     );
   });
 
-  it('uses the model override from options', async () => {
-    mockCreate.mockResolvedValue(mockStream(['ok']));
+  it("uses the model override from options", async () => {
+    mockCreate.mockResolvedValue(mockStream(["ok"]));
 
     const tokens: string[] = [];
-    for await (const t of client.streamCompletion([{ role: 'user', content: 'x' }], {
-      model: 'gpt-5',
+    for await (const t of client.streamCompletion([{ role: "user", content: "x" }], {
+      model: "gpt-5",
     })) {
       tokens.push(t);
     }
 
-    expect(tokens).toEqual(['ok']);
-    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ model: 'gpt-5' }));
+    expect(tokens).toEqual(["ok"]);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5" }));
   });
 
-  it('skips empty/undefined delta content', async () => {
+  it("skips empty/undefined delta content", async () => {
     mockCreate.mockResolvedValue(
       (async function* () {
-        yield { choices: [{ delta: { content: '' } }] };
+        yield { choices: [{ delta: { content: "" } }] };
         yield { choices: [{ delta: {} }] };
-        yield { choices: [{ delta: { content: 'real' } }] };
+        yield { choices: [{ delta: { content: "real" } }] };
       })(),
     );
 
     const tokens: string[] = [];
-    for await (const t of client.streamCompletion([{ role: 'user', content: 'x' }])) {
+    for await (const t of client.streamCompletion([{ role: "user", content: "x" }])) {
       tokens.push(t);
     }
 
-    expect(tokens).toEqual(['real']);
+    expect(tokens).toEqual(["real"]);
   });
 });

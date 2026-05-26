@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
-import { LLMMessage, LLMOptions } from '../domain/agent-context';
-import { ILLMClient } from '../domain/i-llm-client';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import OpenAI from "openai";
+import { LLMMessage, LLMOptions } from "../domain/agent-context";
+import { ILLMClient } from "../domain/i-llm-client";
 
 @Injectable()
 export class OpenAIStreamingClient implements ILLMClient {
@@ -10,8 +10,8 @@ export class OpenAIStreamingClient implements ILLMClient {
   private readonly defaultModel: string;
 
   constructor(private readonly config: ConfigService) {
-    this.client = new OpenAI({ apiKey: this.config.get<string>('OPENAI_API_KEY') ?? '' });
-    this.defaultModel = this.config.get<string>('OPENAI_DEFAULT_MODEL') ?? 'gpt-4o-mini';
+    this.client = new OpenAI({ apiKey: this.config.get<string>("OPENAI_API_KEY") ?? "" });
+    this.defaultModel = this.config.get<string>("OPENAI_DEFAULT_MODEL") ?? "gpt-4o-mini";
   }
 
   async *streamCompletion(messages: LLMMessage[], options?: LLMOptions): AsyncIterable<string> {

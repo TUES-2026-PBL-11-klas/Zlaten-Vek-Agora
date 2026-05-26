@@ -1,4 +1,4 @@
-import { AgentContext } from './agent-context';
+import { AgentContext } from "./agent-context";
 
 /**
  * Strategy pattern entry point. Every agent (Persona, Judge, Analysis)

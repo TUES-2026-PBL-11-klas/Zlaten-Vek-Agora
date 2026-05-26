@@ -1,6 +1,6 @@
-import { AgentContext } from './agent-context';
-import { IDebateAgent } from './i-debate-agent';
-import { ILLMClient } from './i-llm-client';
+import { AgentContext } from "./agent-context";
+import { IDebateAgent } from "./i-debate-agent";
+import { ILLMClient } from "./i-llm-client";
 
 export abstract class BaseAgent implements IDebateAgent {
   constructor(
