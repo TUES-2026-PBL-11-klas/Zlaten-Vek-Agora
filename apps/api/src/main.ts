@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
+import { AppExceptionFilter } from "./modules/agent/presentation/app-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,6 +11,7 @@ async function bootstrap() {
     exclude: [{ path: "health", method: RequestMethod.GET }],
   });
   app.enableCors({ origin: true, credentials: true });
+  app.useGlobalFilters(new AppExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
