@@ -58,21 +58,16 @@ export function PlaybackControls({
         </button>
       </div>
 
-      <div
-        className="relative flex-1 cursor-pointer py-2"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-          onSeek(Math.round(ratio * (totalTurns - 1)));
-        }}
-      >
-        <div className="h-1.5 rounded-full bg-surface-2">
-          <div
-            className="h-full rounded-full bg-accent-rust transition-[width] duration-200"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
-      </div>
+      <input
+        type="range"
+        min={0}
+        max={Math.max(0, totalTurns - 1)}
+        value={Math.round(progress * Math.max(0, totalTurns - 1))}
+        onChange={(e) => onSeek(Number(e.target.value))}
+        disabled={totalTurns === 0}
+        aria-label="Seek playback position"
+        className="flex-1 cursor-pointer accent-accent-rust disabled:opacity-30"
+      />
 
       <span className="shrink-0 font-mono text-[13px] tracking-wide text-ink-muted">
         {turnLabel}

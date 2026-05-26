@@ -135,7 +135,9 @@ function ViewToggle({
   return (
     <div className="flex overflow-hidden rounded-full border border-hair">
       <button
+        type="button"
         onClick={() => onChange("stage")}
+        aria-pressed={active === "stage"}
         className={[
           "px-4 py-1.5 text-[13px] font-medium transition-colors",
           active === "stage" ? "bg-ink-button text-cream" : "text-ink-body hover:bg-surface-mut",
@@ -144,7 +146,9 @@ function ViewToggle({
         Stage view
       </button>
       <button
+        type="button"
         onClick={() => onChange("chamber")}
+        aria-pressed={active === "chamber"}
         className={[
           "px-4 py-1.5 text-[13px] font-medium transition-colors",
           active === "chamber" ? "bg-ink-button text-cream" : "text-ink-body hover:bg-surface-mut",

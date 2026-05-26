@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { DebateDetailMessageDto } from "@agora/shared";
 
-interface PlaybackState {
+export interface PlaybackState {
   currentIndex: number;
   isPlaying: boolean;
   total: number;
 }
 
-type PlaybackAction =
+export type PlaybackAction =
   | { type: "NEXT" }
   | { type: "PREV" }
   | { type: "PLAY" }
@@ -15,7 +15,7 @@ type PlaybackAction =
   | { type: "SEEK"; index: number }
   | { type: "SYNC_TOTAL"; total: number };
 
-function reducer(state: PlaybackState, action: PlaybackAction): PlaybackState {
+export function reducer(state: PlaybackState, action: PlaybackAction): PlaybackState {
   switch (action.type) {
     case "NEXT": {
       const next = Math.min(state.currentIndex + 1, state.total - 1);
@@ -53,7 +53,7 @@ export function usePlayback(rawMessages: DebateDetailMessageDto[]) {
   const total = messages.length;
 
   const [state, dispatch] = useReducer(reducer, {
-    currentIndex: total > 0 ? total - 1 : 0,
+    currentIndex: 0,
     isPlaying: false,
     total,
   });

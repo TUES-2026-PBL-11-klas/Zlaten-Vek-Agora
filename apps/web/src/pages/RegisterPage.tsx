@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/shared/lib/notify";
 
@@ -10,6 +10,7 @@ const labelClass = "text-[12px] font-medium uppercase tracking-[0.14em] text-ink
 
 export function RegisterPage() {
   const { session, loading, signUp } = useAuth();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,6 +42,7 @@ export function RegisterPage() {
     }
 
     notify.success("Account created.");
+    navigate("/");
   };
 
   return (

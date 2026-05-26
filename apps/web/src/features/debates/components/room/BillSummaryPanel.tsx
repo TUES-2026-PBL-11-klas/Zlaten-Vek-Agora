@@ -23,13 +23,6 @@ export function BillSummaryPanel({ keyChanges }: BillSummaryPanelProps) {
       ) : (
         <p className="text-[13px] text-ink-muted">No key changes extracted yet.</p>
       )}
-
-      <a
-        href="#full-text"
-        className="mt-1 text-[13px] text-accent-rust underline-offset-4 hover:underline"
-      >
-        Read full text &rarr;
-      </a>
     </div>
   );
 }

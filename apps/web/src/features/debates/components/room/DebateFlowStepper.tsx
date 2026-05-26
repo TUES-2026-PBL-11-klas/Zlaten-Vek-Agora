@@ -21,8 +21,9 @@ function phaseIndex(round: number): number {
 }
 
 export function DebateFlowStepper({ currentRound, hasSynthesis }: DebateFlowStepperProps) {
-  const activeIdx = hasSynthesis ? 3 : phaseIndex(currentRound);
-  const completedUpTo = hasSynthesis ? 3 : phaseIndex(currentRound) - 1;
+  const isSynthesisPhase = hasSynthesis && currentRound > 3;
+  const activeIdx = isSynthesisPhase ? 3 : phaseIndex(currentRound);
+  const completedUpTo = isSynthesisPhase ? 2 : phaseIndex(currentRound) - 1;
 
   return (
     <nav className="flex flex-col gap-1" aria-label="Debate flow">

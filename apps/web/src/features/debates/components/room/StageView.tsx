@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { FileText } from "lucide-react";
 import type { DebateDetailDto, DebateDetailMessageDto, Emotion } from "@agora/shared";
 import { PersonaAvatar } from "../PersonaAvatar";
@@ -64,8 +65,11 @@ export function StageView({
   roundLabel,
 }: StageViewProps) {
   const count = personas.length;
-  const positions = POSITIONS[count] ?? POSITIONS[5]!;
-  const emotionMap = buildEmotionMap(allMessages, currentIndex);
+  const positions = POSITIONS[Math.min(count, 5) as keyof typeof POSITIONS] ?? POSITIONS[5]!;
+  const emotionMap = useMemo(
+    () => buildEmotionMap(allMessages, currentIndex),
+    [allMessages, currentIndex],
+  );
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-hair bg-surface">
@@ -83,7 +87,7 @@ export function StageView({
         />
 
         {personas.map((persona, idx) => {
-          const pos = positions[idx % positions.length];
+          const pos = positions[Math.min(idx, positions.length - 1)];
           const isActive = persona.id === activePersonaId;
           const emotion = emotionMap.get(persona.id);
 
