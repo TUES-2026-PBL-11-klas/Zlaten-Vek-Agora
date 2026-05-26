@@ -79,6 +79,7 @@ model DebateMessage {
   personaId String   @map("persona_id")
   content   String   @db.Text
   sequence  Int
+  emotion   Emotion  @default(calm)
   createdAt DateTime @default(now()) @map("created_at")
 
   debate  Debate  @relation(fields: [debateId], references: [id])
@@ -86,7 +87,16 @@ model DebateMessage {
   persona Persona @relation(fields: [personaId], references: [id])
 
   @@index([debateId, createdAt])
+  @@index([roundId, sequence])
   @@map("debate_messages")
+}
+
+enum Emotion {
+  calm
+  confident
+  pensive
+  anxious
+  tense
 }
 
 model AnalysisResult {

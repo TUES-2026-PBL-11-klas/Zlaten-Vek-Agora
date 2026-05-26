@@ -69,7 +69,7 @@ function QuoteCard({ message }: { message: DebateDetailMessageDto }) {
 
 function groupByRound(messages: DebateDetailMessageDto[]): RoundGroup[] {
   const ordered = [...messages].sort(
-    (a, b) => a.roundNumber - b.roundNumber || a.sequence - b.sequence,
+    (a, b) => a.roundNumber - b.roundNumber || a.turnIndex - b.turnIndex,
   );
   const groups = new Map<number, DebateDetailMessageDto[]>();
   for (const message of ordered) {

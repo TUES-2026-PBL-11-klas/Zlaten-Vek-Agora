@@ -1,3 +1,4 @@
+import { Emotion } from "@agora/shared";
 import { PersonaEntity } from "../../persona/domain/persona.entity";
 
 export interface DebateEntity {
@@ -17,6 +18,7 @@ export interface DebateMessageEntity {
   personaId: string;
   content: string;
   sequence: number;
+  emotion: Emotion;
   createdAt: Date;
   persona: PersonaEntity;
   round: { roundNumber: number };
