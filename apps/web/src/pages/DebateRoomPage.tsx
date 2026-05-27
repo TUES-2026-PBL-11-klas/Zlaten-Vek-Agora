@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { DebateStatus } from "@agora/shared";
 import { useDebateDetailQuery } from "@/features/debates/api/use-debate-detail-query";
 import { StatusPill } from "@/features/debates/components/StatusPill";
 import { DebateTranscript } from "@/features/debates/components/DebateTranscript";
 import { debateCode, formatDate } from "@/features/debates/lib/debate-code";
 import { usePlayback } from "@/features/debates/hooks/use-playback";
+import { useDebateStream } from "@/features/debates/hooks/use-debate-stream";
 import { DebateFlowStepper } from "@/features/debates/components/room/DebateFlowStepper";
 import { StageView } from "@/features/debates/components/room/StageView";
 import { BillSummaryPanel } from "@/features/debates/components/room/BillSummaryPanel";
@@ -42,15 +44,19 @@ export function DebateRoomPage() {
     );
   }
 
-  return <DebateRoomContent debate={detail.data} />;
+  return <DebateRoomContent debate={detail.data} debateId={id} />;
 }
 
 function DebateRoomContent({
   debate,
+  debateId,
 }: {
   debate: NonNullable<ReturnType<typeof useDebateDetailQuery>["data"]>;
+  debateId: string | undefined;
 }) {
   const [view, setView] = useState<ViewMode>("stage");
+  const isRunning = debate.status === DebateStatus.Running;
+  const stream = useDebateStream(debateId, isRunning);
   const playback = usePlayback(debate.messages);
 
   const current = debate.rounds.current;
@@ -75,6 +81,15 @@ function DebateRoomContent({
           <StatusPill status={debate.status} />
         </div>
       </header>
+
+      {isRunning && stream.isStreaming && (
+        <LiveStreamBanner
+          streamedMessages={stream.streamedMessages}
+          currentPersonaId={stream.currentPersonaId}
+          personas={debate.personas}
+          currentRound={stream.currentRound}
+        />
+      )}
 
       {view === "stage" ? (
         <>
@@ -191,6 +206,76 @@ function ChamberView({
         <DebateTranscript messages={debate.messages} />
       </section>
     </>
+  );
+}
+
+function LiveStreamBanner({
+  streamedMessages,
+  currentPersonaId,
+  personas,
+  currentRound,
+}: {
+  streamedMessages: { personaId: string; personaName: string; tokens: string; complete: boolean }[];
+  currentPersonaId: string | null;
+  personas: Array<{ id: string; name: string; color: string; demographic: string }>;
+  currentRound: number | null;
+}) {
+  const activePersona = personas.find((p) => p.id === currentPersonaId);
+  const lastMessages = streamedMessages.slice(-3);
+
+  return (
+    <section className="space-y-4 rounded-2xl border border-hair bg-surface p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-label">
+          {currentRound ? `Round ${currentRound} - Live` : "Live"}
+        </p>
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-muted">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent-rust" />
+          Streaming
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {lastMessages.map((msg, i) => {
+          const persona = personas.find((p) => p.id === msg.personaId);
+          const isLast = i === lastMessages.length - 1;
+          return (
+            <div key={`${msg.personaId}-${i}`} className="flex items-start gap-3">
+              {persona && (
+                <PersonaAvatar
+                  name={persona.name}
+                  color={persona.color}
+                  size={32}
+                  active={isLast && !msg.complete}
+                />
+              )}
+              <div className="flex-1 space-y-0.5">
+                <p className="text-[12px] font-medium text-ink-muted">{msg.personaName}</p>
+                <p className="text-[14px] leading-6 text-ink-body">
+                  {msg.tokens}
+                  {isLast && !msg.complete && (
+                    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-ink-muted align-middle" />
+                  )}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+
+        {activePersona &&
+          !streamedMessages.find((m) => m.personaId === activePersona.id && !m.complete) && (
+            <div className="flex items-center gap-3 text-ink-muted">
+              <PersonaAvatar
+                name={activePersona.name}
+                color={activePersona.color}
+                size={32}
+                active
+              />
+              <span className="text-[13px]">{activePersona.name} is speaking...</span>
+            </div>
+          )}
+      </div>
+    </section>
   );
 }
 

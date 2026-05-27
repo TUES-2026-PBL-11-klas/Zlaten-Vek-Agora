@@ -13,6 +13,7 @@ import { IDebateMessageRepository } from "./domain/i-debate-message.repository";
 import { DebateEntity, DebateMessageEntity } from "./domain/debate.entity";
 import { AuthenticatedUser } from "../auth/auth.types";
 import { AnalysisService } from "../analysis/analysis.service";
+import { AgentOrchestrator } from "./application/agent-orchestrator";
 
 interface SeedDebate {
   id: string;
@@ -127,7 +128,12 @@ describe("DebateController (integration)", () => {
     const analysisStub = {
       analyze: jest.fn().mockRejectedValue(new Error("analysis not used in list tests")),
     } as unknown as AnalysisService;
-    controller = new DebateController(service, analysisStub);
+    const orchestratorStub = {
+      start: jest.fn(),
+      subscribe: jest.fn(),
+      isRunning: jest.fn().mockReturnValue(false),
+    } as unknown as AgentOrchestrator;
+    controller = new DebateController(service, analysisStub, orchestratorStub);
   });
 
   it("scopes the list to the caller and never leaks another user's debates", async () => {
@@ -174,8 +180,14 @@ describe("DebateController.create flow", () => {
         billTitle: "Test Bill",
         status: DebateStatus.Draft,
       }),
+      requireOwnership: jest.fn().mockResolvedValue(undefined),
     } as unknown as DebateService;
-    return new DebateController(debateService, analysisImpl as AnalysisService);
+    const orchestratorStub = {
+      start: jest.fn(),
+      subscribe: jest.fn(),
+      isRunning: jest.fn().mockReturnValue(false),
+    } as unknown as AgentOrchestrator;
+    return new DebateController(debateService, analysisImpl as AnalysisService, orchestratorStub);
   }
 
   it("returns analysis + personas on success", async () => {

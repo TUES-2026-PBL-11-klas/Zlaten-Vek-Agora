@@ -132,6 +132,13 @@ export class DebateService {
     };
   }
 
+  async requireOwnership(id: string, userId: string): Promise<void> {
+    const debate = await this.debates.findById(id);
+    if (!debate || debate.userId !== userId) {
+      throw new DebateNotFoundException(id);
+    }
+  }
+
   private async requireOverview(id: string, userId: string): Promise<DebateOverview> {
     const overview = await this.debates.findOverviewById(id);
     if (!overview || overview.userId !== userId) {

@@ -7,15 +7,18 @@ import {
   Param,
   Post,
   Query,
+  Sse,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { Observable, map } from "rxjs";
 import type {
   CreateDebateResponseDto,
   DebateChamberStatsDto,
   DebateDetailDto,
+  DebateEvent,
   DebateListItemDto,
   DebateOverviewDto,
   Paginated,
@@ -30,6 +33,7 @@ import { toAnalysisResultDto } from "../analysis/analysis.mapper";
 import { AnalysisFailedException } from "../../common/exceptions/analysis-failed.exception";
 import { PersonaGenerationException } from "../../common/exceptions/persona-generation.exception";
 import { toPersonaDraftDto } from "../persona/persona.mapper";
+import { AgentOrchestrator } from "./application/agent-orchestrator";
 import { DebateService } from "./debate.service";
 import { CreateDebateBodyDto } from "./dto/create-debate.dto";
 
@@ -44,6 +48,7 @@ export class DebateController {
   constructor(
     private readonly debates: DebateService,
     private readonly analysis: AnalysisService,
+    private readonly orchestrator: AgentOrchestrator,
   ) {}
 
   @Post()
@@ -100,6 +105,36 @@ export class DebateController {
   @Get("me/chamber")
   chamber(@CurrentUser() user: AuthenticatedUser): Promise<DebateChamberStatsDto> {
     return this.debates.getChamberStats(user.userId);
+  }
+
+  @Post(":id/start")
+  @HttpCode(HttpStatus.ACCEPTED)
+  async start(
+    @Param("id") id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query("mode") mode?: string,
+  ): Promise<void> {
+    await this.debates.requireOwnership(id, user.userId);
+    await this.orchestrator.start(id, { stepMode: mode === "step" });
+  }
+
+  // SSE endpoint - no JwtAuthGuard because EventSource cannot set Authorization headers.
+  // The debate ID acts as an opaque capability token.
+  @Sse(":id/stream")
+  @UseGuards()
+  streamDebate(@Param("id") id: string): Observable<MessageEvent> {
+    return this.orchestrator.subscribe(id).pipe(
+      map((event: DebateEvent) => {
+        return new MessageEvent("message", { data: JSON.stringify(event) });
+      }),
+    );
+  }
+
+  @Post(":id/advance")
+  @HttpCode(HttpStatus.ACCEPTED)
+  async advance(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
+    await this.debates.requireOwnership(id, user.userId);
+    this.orchestrator.advance(id);
   }
 
   @Get(":id/overview")

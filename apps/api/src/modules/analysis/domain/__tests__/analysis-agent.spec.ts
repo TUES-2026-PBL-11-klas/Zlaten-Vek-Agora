@@ -1,3 +1,4 @@
+import { RoundType } from "@agora/shared";
 import { AgentContext, LLMMessage, LLMOptions } from "../../../agent/domain/agent-context";
 import { ILLMClient } from "../../../agent/domain/i-llm-client";
 import { ANALYSIS_SYSTEM_PROMPT, AnalysisAgent } from "../analysis-agent";
@@ -49,6 +50,7 @@ describe("AnalysisAgent", () => {
       billText: "Sample bill text",
       history: [],
       roundNumber: 0,
+      roundType: RoundType.Position,
     };
 
     let collected = "";
@@ -69,6 +71,7 @@ describe("AnalysisAgent", () => {
       billText: "Hello bill",
       history: [],
       roundNumber: 0,
+      roundType: RoundType.Position,
     };
 
     for await (const _ of agent.generateResponse(ctx)) {

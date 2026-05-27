@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { DebateStatus } from "@agora/shared";
+import { DebateStatus, RoundType } from "@agora/shared";
 import { AppException } from "../../common/exceptions/app.exception";
 import { AnalysisFailedException } from "../../common/exceptions/analysis-failed.exception";
 import { AgentContext } from "../agent/domain/agent-context";
@@ -103,7 +103,12 @@ export class AnalysisService {
   }
 
   private async runAgentWithRetry(billText: string): Promise<ParsedAnalysis> {
-    const context: AgentContext = { billText, history: [], roundNumber: 0 };
+    const context: AgentContext = {
+      billText,
+      history: [],
+      roundNumber: 0,
+      roundType: RoundType.Position,
+    };
 
     let lastParseError: AnalysisFailedException | undefined;
     for (let attempt = 1; attempt <= 2; attempt++) {
