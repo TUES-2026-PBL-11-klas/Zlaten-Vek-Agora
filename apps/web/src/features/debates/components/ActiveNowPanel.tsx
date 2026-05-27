@@ -137,7 +137,7 @@ function RailColumn({
         </Link>
         {overview?.hasSynthesis ? (
           <Link
-            to={`/debates/${summary.id}#synthesis`}
+            to={`/synthesis/${summary.id}`}
             className="text-center text-[13px] text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline"
           >
             Jump to synthesis

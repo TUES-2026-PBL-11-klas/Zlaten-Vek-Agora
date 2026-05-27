@@ -113,13 +113,14 @@ model AnalysisResult {
 }
 
 model JudgeSummary {
-  id             String   @id @default(uuid())
-  debateId       String   @unique @map("debate_id")
-  contradictions Json
-  commonPoints   Json     @map("common_points")
-  compromises    Json
-  groupSummaries Json     @map("group_summaries")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  debateId          String   @unique @map("debate_id")
+  contradictions    Json
+  commonGround      Json     @map("common_ground")
+  compromise        Json
+  participantShifts Json     @map("participant_shifts")
+  closingStatement  String   @map("closing_statement") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
 
   debate Debate @relation(fields: [debateId], references: [id])
 
