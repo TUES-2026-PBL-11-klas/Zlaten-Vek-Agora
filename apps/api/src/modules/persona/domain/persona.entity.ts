@@ -3,9 +3,9 @@ export interface PersonaEntity {
   debateId: string;
   name: string;
   demographic: string;
-  interests: string;
-  fears: string;
-  priorities: string;
+  interests: string[];
+  fears: string[];
+  priorities: string[];
   color: string;
   avatarUrl: string | null;
   createdAt: Date;

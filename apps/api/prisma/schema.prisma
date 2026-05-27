@@ -44,9 +44,9 @@ model Persona {
   debateId    String   @map("debate_id")
   name        String
   demographic String
-  interests   String   @db.Text
-  fears       String   @db.Text
-  priorities  String   @db.Text
+  interests   Json
+  fears       Json
+  priorities  Json
   color       String
   avatarUrl   String?  @map("avatar_url")
   createdAt   DateTime @default(now()) @map("created_at")

@@ -22,6 +22,7 @@ export class OpenAIStreamingClient implements ILLMClient {
       messages,
       stream: true,
       ...(options?.temperature !== undefined && { temperature: options.temperature }),
+      ...(options?.responseFormat && { response_format: options.responseFormat }),
     });
 
     for await (const chunk of stream) {

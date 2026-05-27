@@ -1,3 +1,5 @@
+import { RoundType } from "@agora/shared";
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -6,6 +8,7 @@ export interface LLMMessage {
 export interface LLMOptions {
   model?: string;
   temperature?: number;
+  responseFormat?: { type: "json_object" | "text" };
 }
 
 export interface AgentContext {
@@ -13,4 +16,5 @@ export interface AgentContext {
   persona?: string;
   history: LLMMessage[];
   roundNumber: number;
+  roundType: RoundType;
 }

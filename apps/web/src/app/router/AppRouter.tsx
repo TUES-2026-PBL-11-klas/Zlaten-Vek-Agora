@@ -1,7 +1,7 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { DashboardPage } from "@/pages/DashboardPage";
-import { NewDebatePage } from "@/pages/NewDebatePage";
+import { CreateDebatePage } from "@/pages/CreateDebatePage";
 import { DebateRoomPage } from "@/pages/DebateRoomPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -169,7 +169,7 @@ export function AppRouter() {
             path="/debates/new"
             element={
               <ProtectedRoute>
-                <NewDebatePage />
+                <CreateDebatePage />
               </ProtectedRoute>
             }
           />

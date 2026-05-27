@@ -1,3 +1,4 @@
+import { RoundType } from "@agora/shared";
 import { AgentContext } from "../agent-context";
 import { BaseAgent } from "../base-agent";
 import { ILLMClient } from "../i-llm-client";
@@ -27,7 +28,12 @@ describe("BaseAgent", () => {
   });
 
   it("generateResponse streams tokens", async () => {
-    const ctx: AgentContext = { billText: "bill", history: [], roundNumber: 1 };
+    const ctx: AgentContext = {
+      billText: "bill",
+      history: [],
+      roundNumber: 1,
+      roundType: RoundType.Position,
+    };
     const tokens: string[] = [];
     for await (const token of agent.generateResponse(ctx)) {
       tokens.push(token);

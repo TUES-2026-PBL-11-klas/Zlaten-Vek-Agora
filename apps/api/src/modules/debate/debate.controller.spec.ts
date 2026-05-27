@@ -1,6 +1,7 @@
 import { DebateStatus } from "@agora/shared";
 import { DebateController } from "./debate.controller";
 import { DebateService } from "./debate.service";
+import { IBillTextExtractor } from "./domain/bill-text-extractor";
 import { DebateNotFoundException } from "./domain/debate-not-found.exception";
 import {
   ChamberStats,
@@ -11,6 +12,8 @@ import {
 import { IDebateMessageRepository } from "./domain/i-debate-message.repository";
 import { DebateEntity, DebateMessageEntity } from "./domain/debate.entity";
 import { AuthenticatedUser } from "../auth/auth.types";
+import { AnalysisService } from "../analysis/analysis.service";
+import { AgentOrchestrator } from "./application/agent-orchestrator";
 
 interface SeedDebate {
   id: string;
@@ -83,6 +86,15 @@ class FakeDebateRepository implements IDebateRepository {
   }
 }
 
+class FakeExtractor implements IBillTextExtractor {
+  async extractFromPdf(): Promise<string> {
+    throw new Error("not used");
+  }
+  cleanText(raw: string): string {
+    return raw;
+  }
+}
+
 class FakeMessageRepository implements IDebateMessageRepository {
   async findByDebate(): Promise<DebateMessageEntity[]> {
     return [];
@@ -108,8 +120,20 @@ describe("DebateController (integration)", () => {
   let controller: DebateController;
 
   beforeEach(() => {
-    const service = new DebateService(new FakeDebateRepository(seed), new FakeMessageRepository());
-    controller = new DebateController(service);
+    const service = new DebateService(
+      new FakeDebateRepository(seed),
+      new FakeMessageRepository(),
+      new FakeExtractor(),
+    );
+    const analysisStub = {
+      analyze: jest.fn().mockRejectedValue(new Error("analysis not used in list tests")),
+    } as unknown as AnalysisService;
+    const orchestratorStub = {
+      start: jest.fn(),
+      subscribe: jest.fn(),
+      isRunning: jest.fn().mockReturnValue(false),
+    } as unknown as AgentOrchestrator;
+    controller = new DebateController(service, analysisStub, orchestratorStub);
   });
 
   it("scopes the list to the caller and never leaks another user's debates", async () => {
@@ -143,5 +167,82 @@ describe("DebateController (integration)", () => {
   it("serves the caller's own debate detail", async () => {
     const result = await controller.detail("a-1", userA);
     expect(result.id).toBe("a-1");
+  });
+});
+
+describe("DebateController.create flow", () => {
+  const user: AuthenticatedUser = { userId: "user-1", email: "u@example.com" };
+
+  function buildController(analysisImpl: Partial<AnalysisService>): DebateController {
+    const debateService = {
+      create: jest.fn().mockResolvedValue({
+        debateId: "new-debate",
+        billTitle: "Test Bill",
+        status: DebateStatus.Draft,
+      }),
+      requireOwnership: jest.fn().mockResolvedValue(undefined),
+    } as unknown as DebateService;
+    const orchestratorStub = {
+      start: jest.fn(),
+      subscribe: jest.fn(),
+      isRunning: jest.fn().mockReturnValue(false),
+    } as unknown as AgentOrchestrator;
+    return new DebateController(debateService, analysisImpl as AnalysisService, orchestratorStub);
+  }
+
+  it("returns analysis + personas on success", async () => {
+    const analyze = jest.fn().mockResolvedValue({
+      analysis: {
+        id: "a1",
+        debateId: "new-debate",
+        affectedGroups: [],
+        keyChanges: ["change"],
+        contentiousPoints: ["point"],
+        createdAt: new Date(),
+      },
+      personas: [
+        {
+          id: "p1",
+          debateId: "new-debate",
+          name: "Renter",
+          demographic: "demo",
+          interests: ["a"],
+          fears: ["b"],
+          priorities: ["c"],
+          color: "sage",
+          avatarUrl: null,
+          createdAt: new Date(),
+        },
+      ],
+    });
+    const controller = buildController({ analyze });
+
+    const result = await controller.create(user, { billTitle: "Test Bill" });
+    expect(result.status).toBe(DebateStatus.PersonasPending);
+    expect(result.personas).toHaveLength(1);
+    expect(result.analysis?.keyChanges).toEqual(["change"]);
+    expect(analyze).toHaveBeenCalledWith("new-debate");
+  });
+
+  it("returns AnalysisFailed without personas when LLM yields invalid output", async () => {
+    const { AnalysisFailedException } =
+      await import("../../common/exceptions/analysis-failed.exception");
+    const analyze = jest.fn().mockRejectedValue(new AnalysisFailedException("bad json"));
+    const controller = buildController({ analyze });
+
+    const result = await controller.create(user, { billTitle: "Test Bill" });
+    expect(result.status).toBe(DebateStatus.AnalysisFailed);
+    expect(result.debateId).toBe("new-debate");
+    expect(result.personas).toBeUndefined();
+    expect(result.analysis).toBeUndefined();
+  });
+
+  it("rethrows non-analysis errors so caller can handle them", async () => {
+    const analyze = jest.fn().mockRejectedValue(new Error("network down"));
+    const controller = buildController({ analyze });
+
+    await expect(controller.create(user, { billTitle: "Test Bill" })).rejects.toThrow(
+      "network down",
+    );
   });
 });
