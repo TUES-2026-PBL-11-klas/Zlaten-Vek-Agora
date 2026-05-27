@@ -57,6 +57,56 @@ The web container serves the Vite production build as static files. `VITE_API_UR
 
 Environment variables are documented in [.env.example](.env.example). `.env` is gitignored; real Supabase / OpenAI keys live in GitHub Secrets and k3s Secrets (M5).
 
+## Prebuilt images (GHCR)
+
+The CD workflow ([.github/workflows/cd.yml](.github/workflows/cd.yml)) builds multi-stage images for both apps on every push to `main` and on every `v*` tag, then pushes them to GitHub Container Registry:
+
+- `ghcr.io/<owner>/agora-api:<tag>` — NestJS + Prisma on slim Node 20 (Alpine), runs as non-root, exposes `:3000`.
+- `ghcr.io/<owner>/agora-web:<tag>` — Vite bundle served by nginx, exposes `:80`.
+
+Tags published: `latest` (main only), `sha-<short>`, `sha-<long>`, and on tag pushes `<version>` plus `<major>.<minor>`.
+
+### Smoke run locally
+
+Pull and run the latest images with the env vars from [.env.example](.env.example). Replace `<owner>` with the GitHub org/user that owns the fork (e.g. `tues-2026-pbl-11-klas`); GHCR is case-insensitive but the action publishes lowercased names.
+
+```bash
+# 1. Authenticate to GHCR (only needed if the package is private):
+echo "$GHCR_PAT" | docker login ghcr.io -u <your-github-user> --password-stdin
+
+# 2. Make sure .env is filled in.
+cp .env.example .env
+
+# 3. API - reads env vars at runtime.
+docker run --rm -d --name agora-api \
+  -p 3000:3000 \
+  --env-file .env \
+  ghcr.io/<owner>/agora-api:latest
+
+# Health check (returns "ok" once the app is up):
+curl -fsS http://localhost:3000/health
+
+# 4. Web - the VITE_* values are baked at build time, so the prebuilt image
+#    uses whatever was configured in the CD workflow. To point it at the
+#    local api, expose the api on the host and rebuild the web image with:
+docker build \
+  -f apps/web/Dockerfile \
+  --build-arg VITE_API_URL=http://localhost:3000/api \
+  --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+  --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+  -t agora-web:local .
+
+docker run --rm -d --name agora-web -p 5173:80 agora-web:local
+
+# Smoke test the SPA shell:
+curl -fsS http://localhost:5173/ | head -n 5
+
+# Tear down:
+docker rm -f agora-api agora-web
+```
+
+Image size budget (gzipped layers reported by GHCR): **api < 300 MB, web < 50 MB**.
+
 ## Develop with apps on the host
 
 For day-to-day frontend/backend work you'll want hot reload:
@@ -101,7 +151,14 @@ Runs on every PR targeting `main` and every push to non-`main` branches. Jobs: `
 
 ### CD ([.github/workflows/cd.yml](.github/workflows/cd.yml))
 
-Placeholder — runs on push to `main` and logs a TODO. Real Docker build/push + k3s rollout lands in M5.
+Runs on push to `main` and on `v*` tag pushes. Matrix builds the `api` and `web` multi-stage images with Buildx (gha cache), then pushes them to `ghcr.io/<owner>/agora-api` and `ghcr.io/<owner>/agora-web`. Tags: `latest` (main only), `sha-<short>`, `sha-<long>`, and on tag pushes `<version>` + `<major>.<minor>`. The k3s rollout step lands in a follow-up.
+
+Required CI configuration:
+
+- **Repository → Settings → Actions → General → Workflow permissions:** `Read and write permissions` (so `GITHUB_TOKEN` can push to GHCR).
+- **Repository → Settings → Secrets and variables → Actions:**
+  - `VITE_SUPABASE_ANON_KEY` (secret) — baked into the web bundle at build time.
+  - `VITE_SUPABASE_URL`, `VITE_API_URL` (variables) — optional; default to `/api` for the API URL.
 
 ### Branch protection — configure once on GitHub
 

@@ -1,0 +1,38 @@
+# BuildKit picks this up automatically when building `apps/web/Dockerfile`.
+# Build context is the repo root, so paths are repo-relative.
+
+# Anything that isn't part of the web app or its workspace deps.
+apps/api
+
+# Node tooling output / caches.
+**/node_modules
+**/dist
+**/build
+**/.turbo
+**/coverage
+**/.next
+**/*.tsbuildinfo
+
+# VCS and tooling.
+.git
+.github
+.husky
+.vscode
+.idea
+.claude
+
+# Local env files (real values are baked at build time via --build-arg).
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Logs / OS junk.
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Docs and diagrams are not needed inside the image.
+docs
+README.md
