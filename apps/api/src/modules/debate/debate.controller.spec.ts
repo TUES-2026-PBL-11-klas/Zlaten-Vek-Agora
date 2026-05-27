@@ -1,4 +1,5 @@
 import { DebateStatus } from "@agora/shared";
+import { MetricsService } from "../metrics/metrics.service";
 import { DebateController } from "./debate.controller";
 import { DebateService } from "./debate.service";
 import { IBillTextExtractor } from "./domain/bill-text-extractor";
@@ -107,6 +108,11 @@ class FakeMessageRepository implements IDebateMessageRepository {
   }
 }
 
+const mockMetrics = {
+  debatesCreated: { inc: jest.fn() },
+  sseConnectionsActive: { inc: jest.fn(), dec: jest.fn() },
+} as unknown as MetricsService;
+
 describe("DebateController (integration)", () => {
   const userA: AuthenticatedUser = { userId: "user-a", email: "a@example.com" };
   const userB: AuthenticatedUser = { userId: "user-b", email: "b@example.com" };
@@ -133,7 +139,7 @@ describe("DebateController (integration)", () => {
       subscribe: jest.fn(),
       isRunning: jest.fn().mockReturnValue(false),
     } as unknown as AgentOrchestrator;
-    controller = new DebateController(service, analysisStub, orchestratorStub);
+    controller = new DebateController(service, analysisStub, orchestratorStub, mockMetrics);
   });
 
   it("scopes the list to the caller and never leaks another user's debates", async () => {
@@ -187,7 +193,12 @@ describe("DebateController.create flow", () => {
       subscribe: jest.fn(),
       isRunning: jest.fn().mockReturnValue(false),
     } as unknown as AgentOrchestrator;
-    return new DebateController(debateService, analysisImpl as AnalysisService, orchestratorStub);
+    return new DebateController(
+      debateService,
+      analysisImpl as AnalysisService,
+      orchestratorStub,
+      mockMetrics,
+    );
   }
 
   it("returns analysis + personas on success", async () => {

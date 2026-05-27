@@ -1,5 +1,6 @@
 import { ConfigService } from "@nestjs/config";
 import { OpenAIStreamingClient } from "../openai-streaming-client";
+import { MetricsService } from "../../../metrics/metrics.service";
 
 const mockStream = async function* (tokens: string[]) {
   for (const token of tokens) {
@@ -21,6 +22,10 @@ jest.mock("openai", () => ({
   })),
 }));
 
+const mockMetrics = {
+  openaiRequestDuration: { startTimer: jest.fn().mockReturnValue(jest.fn()) },
+} as unknown as MetricsService;
+
 describe("OpenAIStreamingClient", () => {
   let client: OpenAIStreamingClient;
 
@@ -33,7 +38,7 @@ describe("OpenAIStreamingClient", () => {
       },
     } as unknown as ConfigService;
 
-    client = new OpenAIStreamingClient(config);
+    client = new OpenAIStreamingClient(config, mockMetrics);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -101,6 +106,8 @@ describe("OpenAIStreamingClient", () => {
       },
     } as unknown as ConfigService;
 
-    expect(() => new OpenAIStreamingClient(config)).toThrow("OPENAI_API_KEY is not configured");
+    expect(() => new OpenAIStreamingClient(config, mockMetrics)).toThrow(
+      "OPENAI_API_KEY is not configured",
+    );
   });
 });

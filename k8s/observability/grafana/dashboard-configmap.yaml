@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: observability
+data:
+  agora-observability.json: |
+    {
+      "uid": "agora-obs",
+      "title": "Agora Observability",
+      "description": "Debates per hour, OpenAI latency, SSE connections, HTTP error rate, debate generation duration.",
+      "tags": ["agora"],
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "10s",
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "graphTooltip": 1,
+      "annotations": { "list": [] },
+      "templating": { "list": [] },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Debates Created (per hour)",
+          "description": "Rate of new debates created, scaled to per-hour.",
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "rate(agora_debates_created_total[5m]) * 3600",
+              "legendFormat": "debates / hour",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "custom": { "lineWidth": 2, "fillOpacity": 10 }
+            }
+          },
+          "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list" } }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Active SSE Connections",
+          "description": "Number of clients currently streaming a debate.",
+          "gridPos": { "x": 12, "y": 0, "w": 6, "h": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "agora_sse_connections_active",
+              "legendFormat": "connections",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "blue", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "HTTP Error Rate",
+          "description": "Percentage of requests returning 4xx or 5xx over the last 5 minutes.",
+          "gridPos": { "x": 18, "y": 0, "w": 6, "h": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "100 * rate(agora_http_errors_total[5m]) / rate(agora_http_requests_total[5m])",
+              "legendFormat": "error %",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 2 },
+                  { "color": "red", "value": 5 }
+                ]
+              }
+            }
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "OpenAI Request Latency",
+          "description": "Time from request start to last streaming token - p50 and p95.",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, rate(agora_openai_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p50",
+              "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.95, rate(agora_openai_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p95",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": { "mode": "palette-classic" },
+              "custom": { "lineWidth": 2, "fillOpacity": 5 }
+            }
+          },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list" } }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Debate Generation Duration",
+          "description": "Time from session start to debate_complete event - p50 and p95.",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, rate(agora_debate_generation_duration_seconds_bucket[10m]))",
+              "legendFormat": "p50",
+              "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.95, rate(agora_debate_generation_duration_seconds_bucket[10m]))",
+              "legendFormat": "p95",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": { "mode": "palette-classic" },
+              "custom": { "lineWidth": 2, "fillOpacity": 5 }
+            }
+          },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list" } }
+        }
+      ]
+    }

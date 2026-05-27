@@ -100,3 +100,48 @@ jobs:
             }]
           }
           EOF
+
+  notify-email:
+    name: Notify Email (Failure)
+    runs-on: ubuntu-latest
+    needs: [secrets-scan, lint, test]
+    if: always() && contains(needs.*.result, 'failure')
+    steps:
+      - name: Send failure email via Resend
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTOR: ${{ github.actor }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RESULT_SECRETS: ${{ needs.secrets-scan.result }}
+          RESULT_LINT: ${{ needs.lint.result }}
+          RESULT_TEST: ${{ needs.test.result }}
+        run: |
+          SHORT_SHA="${SHA::7}"
+
+          FAILED_LIST=""
+          [[ "$RESULT_SECRETS" == "failure" ]] && FAILED_LIST="${FAILED_LIST}<li>Secrets Scan</li>"
+          [[ "$RESULT_LINT"    == "failure" ]] && FAILED_LIST="${FAILED_LIST}<li>Lint</li>"
+          [[ "$RESULT_TEST"    == "failure" ]] && FAILED_LIST="${FAILED_LIST}<li>Unit Tests</li>"
+
+          HTML="<h2>CI Pipeline Failed</h2>
+          <p><strong>Repository:</strong> ${REPO}</p>
+          <p><strong>Branch:</strong> <code>${BRANCH}</code></p>
+          <p><strong>Commit:</strong> <code>${SHORT_SHA}</code></p>
+          <p><strong>Triggered by:</strong> ${ACTOR}</p>
+          <p><strong>Failed jobs:</strong></p>
+          <ul>${FAILED_LIST}</ul>
+          <p><a href='${RUN_URL}'>View run on GitHub Actions</a></p>"
+
+          curl -s -X POST "https://api.resend.com/emails" \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"Agora CI <ci@agora-notifications.dev>\",
+              \"to\": [\"${NOTIFY_EMAIL}\"],
+              \"subject\": \"[CI] Failed: ${REPO} (${BRANCH} @ ${SHORT_SHA})\",
+              \"html\": $(echo "$HTML" | jq -Rs .)
+            }"

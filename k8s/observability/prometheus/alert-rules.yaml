@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+  namespace: observability
+data:
+  alert-rules.yml: |
+    groups:
+      - name: agora-api
+        interval: 30s
+        rules:
+          - alert: HighHttpErrorRate
+            expr: |
+              (
+                rate(agora_http_errors_total[5m])
+                /
+                rate(agora_http_requests_total[5m])
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High HTTP error rate on Agora API"
+              description: >-
+                HTTP error rate is {{ printf "%.1f" (mul (div (rate agora_http_errors_total[5m]) (rate agora_http_requests_total[5m])) 100) }}%
+                (threshold 5%) over the last 5 minutes.
+
+          - alert: OpenAILatencyHigh
+            expr: |
+              histogram_quantile(0.95,
+                rate(agora_openai_request_duration_seconds_bucket[5m])
+              ) > 30
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "OpenAI p95 latency above 30 s"
+              description: "p95 OpenAI request latency is above 30 seconds."
+
+          - alert: NoActiveSSEConnections
+            expr: agora_sse_connections_active == 0
+            for: 30m
+            labels:
+              severity: info
+            annotations:
+              summary: "No active SSE connections for 30 minutes"
+              description: "No clients are currently streaming a debate."

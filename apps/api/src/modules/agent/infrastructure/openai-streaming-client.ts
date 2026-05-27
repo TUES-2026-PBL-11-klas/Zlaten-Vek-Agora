@@ -3,13 +3,17 @@ import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 import { LLMMessage, LLMOptions } from "../domain/agent-context";
 import { ILLMClient } from "../domain/i-llm-client";
+import { MetricsService } from "../../metrics/metrics.service";
 
 @Injectable()
 export class OpenAIStreamingClient implements ILLMClient {
   private readonly client: OpenAI;
   private readonly defaultModel: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly metrics: MetricsService,
+  ) {
     const apiKey = this.config.get<string>("OPENAI_API_KEY");
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
     this.client = new OpenAI({ apiKey });
@@ -17,17 +21,22 @@ export class OpenAIStreamingClient implements ILLMClient {
   }
 
   async *streamCompletion(messages: LLMMessage[], options?: LLMOptions): AsyncIterable<string> {
-    const stream = await this.client.chat.completions.create({
-      model: options?.model ?? this.defaultModel,
-      messages,
-      stream: true,
-      ...(options?.temperature !== undefined && { temperature: options.temperature }),
-      ...(options?.responseFormat && { response_format: options.responseFormat }),
-    });
+    const end = this.metrics.openaiRequestDuration.startTimer();
+    try {
+      const stream = await this.client.chat.completions.create({
+        model: options?.model ?? this.defaultModel,
+        messages,
+        stream: true,
+        ...(options?.temperature !== undefined && { temperature: options.temperature }),
+        ...(options?.responseFormat && { response_format: options.responseFormat }),
+      });
 
-    for await (const chunk of stream) {
-      const token = chunk.choices[0]?.delta?.content;
-      if (token) yield token;
+      for await (const chunk of stream) {
+        const token = chunk.choices[0]?.delta?.content;
+        if (token) yield token;
+      }
+    } finally {
+      end();
     }
   }
 }

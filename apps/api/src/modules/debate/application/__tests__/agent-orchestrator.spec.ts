@@ -24,6 +24,7 @@ import { DebateMessageEntity } from "../../domain/debate.entity";
 import { DebateAlreadyRunningException } from "../../../../common/exceptions/debate-already-running.exception";
 import { DebateNotStartableException } from "../../../../common/exceptions/debate-not-startable.exception";
 import { DebateNotFoundException } from "../../domain/debate-not-found.exception";
+import { MetricsService } from "../../../metrics/metrics.service";
 
 // ─── Factories ───────────────────────────────────────────────────────────────
 
@@ -179,6 +180,10 @@ async function buildOrchestrator(
     createJudge: jest.fn().mockReturnValue(makeMockJudge()),
   } as unknown as jest.Mocked<PersonaAgentFactory>;
 
+  const mockMetrics = {
+    debateGenerationDuration: { startTimer: jest.fn().mockReturnValue(jest.fn()) },
+  } as unknown as MetricsService;
+
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       AgentOrchestrator,
@@ -188,6 +193,7 @@ async function buildOrchestrator(
       { provide: DEBATE_MESSAGE_REPOSITORY, useValue: repos.messageRepo },
       { provide: JUDGE_SUMMARY_REPOSITORY, useValue: repos.judgeSummaryRepo },
       { provide: PersonaAgentFactory, useValue: factory },
+      { provide: MetricsService, useValue: mockMetrics },
     ],
   }).compile();
 
@@ -391,6 +397,10 @@ describe("AgentOrchestrator - concurrent session isolation", () => {
       createJudge: jest.fn().mockReturnValue(makeMockJudge()),
     } as unknown as jest.Mocked<PersonaAgentFactory>;
 
+    const concurrencyMetrics = {
+      debateGenerationDuration: { startTimer: jest.fn().mockReturnValue(jest.fn()) },
+    } as unknown as MetricsService;
+
     const module = await Test.createTestingModule({
       providers: [
         AgentOrchestrator,
@@ -400,6 +410,7 @@ describe("AgentOrchestrator - concurrent session isolation", () => {
         { provide: DEBATE_MESSAGE_REPOSITORY, useValue: reposA.messageRepo },
         { provide: JUDGE_SUMMARY_REPOSITORY, useValue: reposA.judgeSummaryRepo },
         { provide: PersonaAgentFactory, useValue: factory },
+        { provide: MetricsService, useValue: concurrencyMetrics },
       ],
     }).compile();
 

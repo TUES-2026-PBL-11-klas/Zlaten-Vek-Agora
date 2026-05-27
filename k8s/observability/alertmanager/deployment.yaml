@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: observability
+  labels:
+    app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.27.0
+          args:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/alertmanager"
+          ports:
+            - containerPort: 9093
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager/alertmanager.yml
+              subPath: alertmanager.yml
+            - name: secrets
+              mountPath: /etc/alertmanager/discord_webhook_url
+              subPath: discord_webhook_url
+              readOnly: true
+            - name: data
+              mountPath: /alertmanager
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+        - name: secrets
+          secret:
+            secretName: alertmanager-secrets
+        - name: data
+          emptyDir: {}
+---
+# kubectl create secret generic alertmanager-secrets \
+#   --from-literal=discord_webhook_url=https://discord.com/api/webhooks/ID/TOKEN/slack \
+#   -n observability

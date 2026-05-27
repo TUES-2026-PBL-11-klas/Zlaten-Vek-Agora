@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+export PATH="$HOME/AppData/Local/pnpm:$PATH"
+
 echo "▶ pre-commit: lint-staged (eslint --fix + prettier)"
 pnpm exec lint-staged || exit 1
 

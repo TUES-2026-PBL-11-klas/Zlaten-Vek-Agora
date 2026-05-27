@@ -8,7 +8,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix("api", {
-    exclude: [{ path: "health", method: RequestMethod.GET }],
+    exclude: [
+      { path: "health", method: RequestMethod.GET },
+      { path: "metrics", method: RequestMethod.GET },
+    ],
   });
   app.enableCors({ origin: true, credentials: true });
   app.useGlobalFilters(new AppExceptionFilter());
