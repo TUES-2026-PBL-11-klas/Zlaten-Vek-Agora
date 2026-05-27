@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type {
   ActiveTurnDto,
+  CreateDebateResponseDto,
   DebateChamberStatsDto,
   DebateDetailDto,
   DebateListItemDto,
@@ -8,7 +9,10 @@ import type {
   Paginated,
 } from "@agora/shared";
 import { DebateStatus } from "@agora/shared";
+import { AppException } from "../../common/exceptions/app.exception";
+import { BillTooLongException } from "../../common/exceptions/bill-too-long.exception";
 import { DebateMessageEntity } from "./domain/debate.entity";
+import { BILL_TEXT_EXTRACTOR, IBillTextExtractor } from "./domain/bill-text-extractor";
 import { DEBATE_REPOSITORY, DebateOverview, IDebateRepository } from "./domain/i-debate.repository";
 import {
   DEBATE_MESSAGE_REPOSITORY,
@@ -21,7 +25,51 @@ export class DebateService {
   constructor(
     @Inject(DEBATE_REPOSITORY) private readonly debates: IDebateRepository,
     @Inject(DEBATE_MESSAGE_REPOSITORY) private readonly messages: IDebateMessageRepository,
+    @Inject(BILL_TEXT_EXTRACTOR) private readonly extractor: IBillTextExtractor,
   ) {}
+
+  async create(
+    userId: string,
+    billTitle: string,
+    billText: string | undefined,
+    file: Express.Multer.File | undefined,
+  ): Promise<CreateDebateResponseDto> {
+    if (!file && !billText) {
+      throw new AppException(
+        "Either a PDF file or bill text must be provided",
+        400,
+        "MISSING_BILL_CONTENT",
+      );
+    }
+
+    let text: string;
+    let sourceType: string;
+
+    if (file) {
+      text = await this.extractor.extractFromPdf(file.buffer);
+      sourceType = "pdf";
+    } else {
+      text = this.extractor.cleanText(billText!);
+      if (text.length > 200_000) {
+        throw new BillTooLongException(text.length);
+      }
+      sourceType = "text";
+    }
+
+    const debate = await this.debates.save({
+      userId,
+      title: billTitle,
+      billText: text,
+      sourceType,
+      status: DebateStatus.Draft,
+    });
+
+    return {
+      debateId: debate.id,
+      billTitle: debate.title,
+      status: DebateStatus.Draft,
+    };
+  }
 
   async listForUser(
     userId: string,

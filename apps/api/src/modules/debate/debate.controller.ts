@@ -1,5 +1,19 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import type {
+  CreateDebateResponseDto,
   DebateChamberStatsDto,
   DebateDetailDto,
   DebateListItemDto,
@@ -10,6 +24,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AuthenticatedUser } from "../auth/auth.types";
 import { DebateService } from "./debate.service";
+import { CreateDebateBodyDto } from "./dto/create-debate.dto";
 
 const DEFAULT_PAGE_SIZE = 6;
 const MAX_PAGE_SIZE = 100;
@@ -18,6 +33,21 @@ const MAX_PAGE_SIZE = 100;
 @UseGuards(JwtAuthGuard)
 export class DebateController {
   constructor(private readonly debates: DebateService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CreateDebateBodyDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<CreateDebateResponseDto> {
+    return this.debates.create(user.userId, body.billTitle, body.billText, file);
+  }
 
   @Get()
   list(

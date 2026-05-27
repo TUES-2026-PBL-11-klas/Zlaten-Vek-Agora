@@ -1,6 +1,7 @@
 import { DebateStatus } from "@agora/shared";
 import { DebateController } from "./debate.controller";
 import { DebateService } from "./debate.service";
+import { IBillTextExtractor } from "./domain/bill-text-extractor";
 import { DebateNotFoundException } from "./domain/debate-not-found.exception";
 import {
   ChamberStats,
@@ -83,6 +84,15 @@ class FakeDebateRepository implements IDebateRepository {
   }
 }
 
+class FakeExtractor implements IBillTextExtractor {
+  async extractFromPdf(): Promise<string> {
+    throw new Error("not used");
+  }
+  cleanText(raw: string): string {
+    return raw;
+  }
+}
+
 class FakeMessageRepository implements IDebateMessageRepository {
   async findByDebate(): Promise<DebateMessageEntity[]> {
     return [];
@@ -108,7 +118,11 @@ describe("DebateController (integration)", () => {
   let controller: DebateController;
 
   beforeEach(() => {
-    const service = new DebateService(new FakeDebateRepository(seed), new FakeMessageRepository());
+    const service = new DebateService(
+      new FakeDebateRepository(seed),
+      new FakeMessageRepository(),
+      new FakeExtractor(),
+    );
     controller = new DebateController(service);
   });
 

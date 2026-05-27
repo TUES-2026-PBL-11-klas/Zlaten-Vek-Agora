@@ -1,6 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { DebateStatus, Emotion } from "@agora/shared";
+import { AppException } from "../../common/exceptions/app.exception";
+import { BillTooLongException } from "../../common/exceptions/bill-too-long.exception";
+import { ScannedPdfException } from "../../common/exceptions/scanned-pdf.exception";
 import { DebateService } from "./debate.service";
+import { BILL_TEXT_EXTRACTOR, IBillTextExtractor } from "./domain/bill-text-extractor";
 import {
   DEBATE_REPOSITORY,
   DebateListItem,
@@ -11,7 +15,7 @@ import {
   DEBATE_MESSAGE_REPOSITORY,
   IDebateMessageRepository,
 } from "./domain/i-debate-message.repository";
-import { DebateMessageEntity } from "./domain/debate.entity";
+import { DebateEntity, DebateMessageEntity } from "./domain/debate.entity";
 import { DebateNotFoundException } from "./domain/debate-not-found.exception";
 
 describe("DebateService", () => {
@@ -70,7 +74,18 @@ describe("DebateService", () => {
 
   let repository: jest.Mocked<IDebateRepository>;
   let messages: jest.Mocked<IDebateMessageRepository>;
+  let extractor: jest.Mocked<IBillTextExtractor>;
   let service: DebateService;
+
+  const savedDebate: DebateEntity = {
+    id: "new-debate-id",
+    userId,
+    title: "Test Bill",
+    billText: "extracted text content",
+    sourceType: "text",
+    status: DebateStatus.Draft,
+    createdAt: new Date("2026-05-27T10:00:00.000Z"),
+  };
 
   beforeEach(async () => {
     repository = {
@@ -89,11 +104,17 @@ describe("DebateService", () => {
       append: jest.fn(),
     };
 
+    extractor = {
+      extractFromPdf: jest.fn(),
+      cleanText: jest.fn((t) => t),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DebateService,
         { provide: DEBATE_REPOSITORY, useValue: repository },
         { provide: DEBATE_MESSAGE_REPOSITORY, useValue: messages },
+        { provide: BILL_TEXT_EXTRACTOR, useValue: extractor },
       ],
     }).compile();
 
@@ -230,6 +251,67 @@ describe("DebateService", () => {
         DebateNotFoundException,
       );
       expect(messages.findByDebate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("create", () => {
+    it("creates a debate from pasted text with sourceType 'text'", async () => {
+      repository.save.mockResolvedValueOnce(savedDebate);
+
+      const result = await service.create(userId, "Test Bill", "some bill text", undefined);
+
+      expect(extractor.cleanText).toHaveBeenCalledWith("some bill text");
+      expect(repository.save).toHaveBeenCalledWith({
+        userId,
+        title: "Test Bill",
+        billText: "some bill text",
+        sourceType: "text",
+        status: DebateStatus.Draft,
+      });
+      expect(result).toEqual({
+        debateId: "new-debate-id",
+        billTitle: "Test Bill",
+        status: DebateStatus.Draft,
+      });
+    });
+
+    it("creates a debate from PDF file with sourceType 'pdf'", async () => {
+      const pdfDebate = { ...savedDebate, sourceType: "pdf" };
+      repository.save.mockResolvedValueOnce(pdfDebate);
+      extractor.extractFromPdf.mockResolvedValueOnce("extracted pdf text");
+
+      const file = { buffer: Buffer.from("%PDF-fake") } as Express.Multer.File;
+      const result = await service.create(userId, "Test Bill", undefined, file);
+
+      expect(extractor.extractFromPdf).toHaveBeenCalledWith(file.buffer);
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceType: "pdf", billText: "extracted pdf text" }),
+      );
+      expect(result.debateId).toBe("new-debate-id");
+    });
+
+    it("throws when neither file nor billText is provided", async () => {
+      await expect(service.create(userId, "Test Bill", undefined, undefined)).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it("throws BillTooLongException when pasted text exceeds limit", async () => {
+      const longText = "a".repeat(200_001);
+      extractor.cleanText.mockReturnValueOnce(longText);
+
+      await expect(service.create(userId, "Test Bill", longText, undefined)).rejects.toBeInstanceOf(
+        BillTooLongException,
+      );
+    });
+
+    it("propagates extractor exceptions from PDF extraction", async () => {
+      extractor.extractFromPdf.mockRejectedValueOnce(new ScannedPdfException());
+
+      const file = { buffer: Buffer.from("%PDF-fake") } as Express.Multer.File;
+      await expect(service.create(userId, "Test Bill", undefined, file)).rejects.toBeInstanceOf(
+        ScannedPdfException,
+      );
     });
   });
 });
