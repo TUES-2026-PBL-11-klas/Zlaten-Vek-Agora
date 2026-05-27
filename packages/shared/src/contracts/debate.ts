@@ -1,5 +1,6 @@
 import type { DebateStatus } from "../enums/debate-status";
 import type { Emotion } from "../enums/emotion";
+import type { AnalysisResultDto, PersonaDraftDto } from "./analysis";
 
 export interface CreateDebateDto {
   billTitle: string;
@@ -10,6 +11,8 @@ export interface CreateDebateResponseDto {
   debateId: string;
   billTitle: string;
   status: DebateStatus;
+  personas?: PersonaDraftDto[];
+  analysis?: AnalysisResultDto;
 }
 
 export interface DebateResponseDto {

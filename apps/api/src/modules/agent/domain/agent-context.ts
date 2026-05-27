@@ -6,6 +6,7 @@ export interface LLMMessage {
 export interface LLMOptions {
   model?: string;
   temperature?: number;
+  responseFormat?: { type: "json_object" | "text" };
 }
 
 export interface AgentContext {

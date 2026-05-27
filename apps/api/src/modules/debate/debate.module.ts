@@ -1,4 +1,5 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
+import { AnalysisModule } from "../analysis/analysis.module";
 import { DebateController } from "./debate.controller";
 import { DebateService } from "./debate.service";
 import { BILL_TEXT_EXTRACTOR } from "./domain/bill-text-extractor";
@@ -9,6 +10,7 @@ import { PrismaDebateRepository } from "./infrastructure/prisma-debate.repositor
 import { PrismaDebateMessageRepository } from "./infrastructure/prisma-debate-message.repository";
 
 @Module({
+  imports: [forwardRef(() => AnalysisModule)],
   controllers: [DebateController],
   providers: [
     DebateService,

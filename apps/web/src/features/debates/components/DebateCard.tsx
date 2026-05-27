@@ -13,6 +13,7 @@ interface DebateCardProps {
 const ACCENT_BY_STATUS: Record<DebateStatus, string> = {
   [DebateStatus.Draft]: "var(--color-status-draft-bg)",
   [DebateStatus.Analyzing]: "var(--color-status-analyzing-ink)",
+  [DebateStatus.AnalysisFailed]: "var(--color-status-draft-bg)",
   [DebateStatus.PersonasPending]: "var(--color-status-pending-ink)",
   [DebateStatus.Running]: "var(--color-persona-mustard)",
   [DebateStatus.Completed]: "var(--color-persona-sage)",

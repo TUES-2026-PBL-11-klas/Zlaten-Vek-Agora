@@ -20,9 +20,16 @@ import type {
   DebateOverviewDto,
   Paginated,
 } from "@agora/shared";
+import { DebateStatus } from "@agora/shared";
+import { Logger } from "@nestjs/common";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AuthenticatedUser } from "../auth/auth.types";
+import { AnalysisService } from "../analysis/analysis.service";
+import { toAnalysisResultDto } from "../analysis/analysis.mapper";
+import { AnalysisFailedException } from "../../common/exceptions/analysis-failed.exception";
+import { PersonaGenerationException } from "../../common/exceptions/persona-generation.exception";
+import { toPersonaDraftDto } from "../persona/persona.mapper";
 import { DebateService } from "./debate.service";
 import { CreateDebateBodyDto } from "./dto/create-debate.dto";
 
@@ -32,7 +39,12 @@ const MAX_PAGE_SIZE = 100;
 @Controller("debates")
 @UseGuards(JwtAuthGuard)
 export class DebateController {
-  constructor(private readonly debates: DebateService) {}
+  private readonly logger = new Logger(DebateController.name);
+
+  constructor(
+    private readonly debates: DebateService,
+    private readonly analysis: AnalysisService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -41,12 +53,35 @@ export class DebateController {
       limits: { fileSize: 10 * 1024 * 1024 },
     }),
   )
-  create(
+  async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: CreateDebateBodyDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<CreateDebateResponseDto> {
-    return this.debates.create(user.userId, body.billTitle, body.billText, file);
+    const draft = await this.debates.create(user.userId, body.billTitle, body.billText, file);
+
+    try {
+      const { analysis, personas } = await this.analysis.analyze(draft.debateId);
+      return {
+        debateId: draft.debateId,
+        billTitle: draft.billTitle,
+        status: DebateStatus.PersonasPending,
+        personas: personas.map(toPersonaDraftDto),
+        analysis: toAnalysisResultDto(analysis),
+      };
+    } catch (err) {
+      if (err instanceof AnalysisFailedException || err instanceof PersonaGenerationException) {
+        this.logger.warn(
+          `Analysis failed for debate ${draft.debateId}, returning AnalysisFailed status: ${err.message}`,
+        );
+        return {
+          debateId: draft.debateId,
+          billTitle: draft.billTitle,
+          status: DebateStatus.AnalysisFailed,
+        };
+      }
+      throw err;
+    }
   }
 
   @Get()

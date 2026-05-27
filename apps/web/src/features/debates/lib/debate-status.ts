@@ -20,6 +20,12 @@ const visuals: Record<DebateStatus, StatusVisual> = {
     ink: "text-[var(--color-status-analyzing-ink)]",
     pulse: true,
   },
+  [DebateStatus.AnalysisFailed]: {
+    label: "Analysis failed",
+    bg: "bg-[var(--color-status-draft-bg)]",
+    ink: "text-[var(--color-status-draft-ink)]",
+    pulse: false,
+  },
   [DebateStatus.PersonasPending]: {
     label: "Review personas",
     bg: "bg-[var(--color-status-pending-bg)]",

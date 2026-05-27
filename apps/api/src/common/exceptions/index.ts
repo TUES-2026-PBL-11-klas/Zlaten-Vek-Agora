@@ -1,3 +1,4 @@
+export { AnalysisFailedException } from "./analysis-failed.exception";
 export { AppException } from "./app.exception";
 export { BillParsingException } from "./bill-parsing.exception";
 export { BillTooLongException } from "./bill-too-long.exception";
