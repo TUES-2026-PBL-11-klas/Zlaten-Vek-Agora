@@ -11,6 +11,7 @@ interface StageViewProps {
   currentIndex: number;
   billCode: string;
   roundLabel: string;
+  streamEmotions?: Map<string, string>;
 }
 
 const POSITIONS: Record<number, Array<{ top: string; left: string }>> = {
@@ -63,13 +64,19 @@ export function StageView({
   currentIndex,
   billCode,
   roundLabel,
+  streamEmotions,
 }: StageViewProps) {
   const count = personas.length;
   const positions = POSITIONS[Math.min(count, 5) as keyof typeof POSITIONS] ?? POSITIONS[5]!;
-  const emotionMap = useMemo(
-    () => buildEmotionMap(allMessages, currentIndex),
-    [allMessages, currentIndex],
-  );
+  const emotionMap = useMemo(() => {
+    const base = buildEmotionMap(allMessages, currentIndex);
+    if (streamEmotions) {
+      for (const [id, emotion] of streamEmotions) {
+        base.set(id, emotion as Emotion);
+      }
+    }
+    return base;
+  }, [allMessages, currentIndex, streamEmotions]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-hair bg-surface">

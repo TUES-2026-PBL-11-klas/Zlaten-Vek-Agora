@@ -242,7 +242,7 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
   }
 
   async function handleStart() {
-    await startDebate.mutateAsync(debateId);
+    await startDebate.mutateAsync({ debateId });
     navigate(`/debates/${debateId}`);
   }
 

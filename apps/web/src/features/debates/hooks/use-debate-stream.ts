@@ -17,6 +17,7 @@ export interface DebateStreamState {
   currentRound: number | null;
   isStreaming: boolean;
   isComplete: boolean;
+  waitingForAdvance: boolean;
 }
 
 const INITIAL_STATE: DebateStreamState = {
@@ -25,6 +26,7 @@ const INITIAL_STATE: DebateStreamState = {
   currentRound: null,
   isStreaming: false,
   isComplete: false,
+  waitingForAdvance: false,
 };
 
 export function useDebateStream(debateId: string | undefined, enabled: boolean): DebateStreamState {
@@ -77,7 +79,12 @@ export function useDebateStream(debateId: string | undefined, enabled: boolean):
 function applyEvent(prev: DebateStreamState, event: DebateEvent): DebateStreamState {
   switch (event.type) {
     case "round_start":
-      return { ...prev, currentRound: event.data.roundNumber, isStreaming: true };
+      return {
+        ...prev,
+        currentRound: event.data.roundNumber,
+        isStreaming: true,
+        waitingForAdvance: false,
+      };
 
     case "persona_start":
       return {
@@ -113,8 +120,17 @@ function applyEvent(prev: DebateStreamState, event: DebateEvent): DebateStreamSt
       return { ...prev, streamedMessages: msgs, currentPersonaId: null };
     }
 
+    case "round_end":
+      return { ...prev, waitingForAdvance: true };
+
     case "debate_complete":
-      return { ...prev, isStreaming: false, isComplete: true, currentPersonaId: null };
+      return {
+        ...prev,
+        isStreaming: false,
+        isComplete: true,
+        currentPersonaId: null,
+        waitingForAdvance: false,
+      };
 
     case "error":
       return { ...prev, isStreaming: false };
