@@ -1,10 +1,11 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { DashboardPage } from "@/pages/DashboardPage";
-import { NewDebatePage } from "@/pages/NewDebatePage";
+import { CreateDebatePage } from "@/pages/CreateDebatePage";
 import { DebateRoomPage } from "@/pages/DebateRoomPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { SynthesisPage } from "@/pages/SynthesisPage";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/shared/lib/notify";
@@ -169,7 +170,7 @@ export function AppRouter() {
             path="/debates/new"
             element={
               <ProtectedRoute>
-                <NewDebatePage />
+                <CreateDebatePage />
               </ProtectedRoute>
             }
           />
@@ -178,6 +179,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute>
                 <DebateRoomPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/synthesis/:id"
+            element={
+              <ProtectedRoute>
+                <SynthesisPage />
               </ProtectedRoute>
             }
           />

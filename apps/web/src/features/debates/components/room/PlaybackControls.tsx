@@ -13,6 +13,9 @@ interface PlaybackControlsProps {
   onPlayPause: () => void;
   onSeek: (index: number) => void;
   onSkipToSynthesis: () => void;
+  isLive?: boolean;
+  waitingForAdvance?: boolean;
+  onAdvance?: () => void;
 }
 
 export function PlaybackControls({
@@ -28,7 +31,34 @@ export function PlaybackControls({
   onPlayPause,
   onSeek,
   onSkipToSynthesis,
+  isLive,
+  waitingForAdvance,
+  onAdvance,
 }: PlaybackControlsProps) {
+  if (isLive) {
+    return (
+      <div className="flex items-center justify-between rounded-2xl border border-hair bg-surface px-6 py-4">
+        <span className="flex items-center gap-2 text-[13px] text-ink-muted">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent-rust" />
+          Live
+        </span>
+
+        <span className="shrink-0 font-mono text-[13px] tracking-wide text-ink-muted">
+          {turnLabel}
+        </span>
+
+        {waitingForAdvance && onAdvance && (
+          <button
+            onClick={onAdvance}
+            className="inline-flex h-12 items-center justify-center rounded-full bg-ink-button px-6 text-[14px] font-medium text-cream transition-colors hover:opacity-90"
+          >
+            Continue to next round &rarr;
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-hair bg-surface px-6 py-4">
       <div className="flex items-center gap-1.5">

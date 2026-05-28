@@ -1,15 +1,41 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Sse,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { Observable, map } from "rxjs";
 import type {
+  CreateDebateResponseDto,
   DebateChamberStatsDto,
   DebateDetailDto,
+  DebateEvent,
   DebateListItemDto,
   DebateOverviewDto,
   Paginated,
 } from "@agora/shared";
+import { DebateStatus } from "@agora/shared";
+import { Logger } from "@nestjs/common";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AuthenticatedUser } from "../auth/auth.types";
+import { AnalysisService } from "../analysis/analysis.service";
+import { toAnalysisResultDto } from "../analysis/analysis.mapper";
+import { AnalysisFailedException } from "../../common/exceptions/analysis-failed.exception";
+import { PersonaGenerationException } from "../../common/exceptions/persona-generation.exception";
+import { toPersonaDraftDto } from "../persona/persona.mapper";
+import { AgentOrchestrator } from "./application/agent-orchestrator";
 import { DebateService } from "./debate.service";
+import { CreateDebateBodyDto } from "./dto/create-debate.dto";
 
 const DEFAULT_PAGE_SIZE = 6;
 const MAX_PAGE_SIZE = 100;
@@ -17,7 +43,51 @@ const MAX_PAGE_SIZE = 100;
 @Controller("debates")
 @UseGuards(JwtAuthGuard)
 export class DebateController {
-  constructor(private readonly debates: DebateService) {}
+  private readonly logger = new Logger(DebateController.name);
+
+  constructor(
+    private readonly debates: DebateService,
+    private readonly analysis: AnalysisService,
+    private readonly orchestrator: AgentOrchestrator,
+  ) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CreateDebateBodyDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<CreateDebateResponseDto> {
+    const draft = await this.debates.create(user.userId, body.billTitle, body.billText, file);
+
+    try {
+      const { analysis, personas } = await this.analysis.analyze(draft.debateId);
+      return {
+        debateId: draft.debateId,
+        billTitle: draft.billTitle,
+        status: DebateStatus.PersonasPending,
+        personas: personas.map(toPersonaDraftDto),
+        analysis: toAnalysisResultDto(analysis),
+      };
+    } catch (err) {
+      if (err instanceof AnalysisFailedException || err instanceof PersonaGenerationException) {
+        this.logger.warn(
+          `Analysis failed for debate ${draft.debateId}, returning AnalysisFailed status: ${err.message}`,
+        );
+        return {
+          debateId: draft.debateId,
+          billTitle: draft.billTitle,
+          status: DebateStatus.AnalysisFailed,
+        };
+      }
+      throw err;
+    }
+  }
 
   @Get()
   list(
@@ -35,6 +105,36 @@ export class DebateController {
   @Get("me/chamber")
   chamber(@CurrentUser() user: AuthenticatedUser): Promise<DebateChamberStatsDto> {
     return this.debates.getChamberStats(user.userId);
+  }
+
+  @Post(":id/start")
+  @HttpCode(HttpStatus.ACCEPTED)
+  async start(
+    @Param("id") id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query("mode") mode?: string,
+  ): Promise<void> {
+    await this.debates.requireOwnership(id, user.userId);
+    await this.orchestrator.start(id, { stepMode: mode === "step" });
+  }
+
+  // SSE endpoint - no JwtAuthGuard because EventSource cannot set Authorization headers.
+  // The debate ID acts as an opaque capability token.
+  @Sse(":id/stream")
+  @UseGuards()
+  streamDebate(@Param("id") id: string): Observable<MessageEvent> {
+    return this.orchestrator.subscribe(id).pipe(
+      map((event: DebateEvent) => {
+        return new MessageEvent("message", { data: JSON.stringify(event) });
+      }),
+    );
+  }
+
+  @Post(":id/advance")
+  @HttpCode(HttpStatus.ACCEPTED)
+  async advance(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
+    await this.debates.requireOwnership(id, user.userId);
+    this.orchestrator.advance(id);
   }
 
   @Get(":id/overview")
