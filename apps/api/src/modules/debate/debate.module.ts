@@ -28,6 +28,12 @@ import { PrismaRoundRepository } from "./infrastructure/prisma-round.repository"
     { provide: ROUND_REPOSITORY, useClass: PrismaRoundRepository },
     { provide: JUDGE_SUMMARY_REPOSITORY, useClass: PrismaJudgeSummaryRepository },
   ],
-  exports: [DebateService, AgentOrchestrator, DEBATE_REPOSITORY, DEBATE_MESSAGE_REPOSITORY],
+  exports: [
+    DebateService,
+    AgentOrchestrator,
+    DEBATE_REPOSITORY,
+    DEBATE_MESSAGE_REPOSITORY,
+    JUDGE_SUMMARY_REPOSITORY,
+  ],
 })
 export class DebateModule {}

@@ -11,3 +11,4 @@ export * from "./contracts/persona-reply";
 export * from "./contracts/message";
 export * from "./contracts/http";
 export * from "./contracts/debate-event";
+export * from "./contracts/synthesis";

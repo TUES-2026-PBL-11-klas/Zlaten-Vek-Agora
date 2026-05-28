@@ -92,7 +92,7 @@ function makeMockJudge() {
     id: "judge",
     personaName: "Judge",
     generateResponse: async function* () {
-      yield '{"contradictions":[],"commonPoints":[],"compromises":[],"groupSummaries":{}}';
+      yield '{"contradictions":[],"commonGround":[],"compromise":[],"participantShifts":[],"closingStatement":""}';
     },
   };
 }
@@ -155,9 +155,10 @@ function makeRepos(personas: PersonaEntity[], debateId = "debate-1") {
       id: "summary-1",
       debateId,
       contradictions: [],
-      commonPoints: [],
-      compromises: [],
-      groupSummaries: {},
+      commonGround: [],
+      compromise: [],
+      participantShifts: [],
+      closingStatement: "",
       createdAt: new Date(),
     }),
     findByDebate: jest.fn(),
