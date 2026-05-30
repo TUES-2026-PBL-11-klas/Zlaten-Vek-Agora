@@ -196,6 +196,7 @@ kubectl -n agora create secret docker-registry ghcr-secret \
 
 kubectl -n agora create secret generic agora-secrets \
   --from-literal=DATABASE_URL=... \
+  --from-literal=DIRECT_URL=... \
   --from-literal=SUPABASE_URL=... \
   --from-literal=SUPABASE_JWT_SECRET=... \
   --from-literal=OPENAI_API_KEY=...
