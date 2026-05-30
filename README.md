@@ -174,6 +174,38 @@ Required CI configuration:
 - ✅ Do not allow bypassing the above (uncheck "Allow administrators to bypass")
 - ❌ Allow force pushes / deletions — leave off
 
+## Deploying to k3s
+
+Manifests live in [k8s/](k8s/). Target runtime is k3s (or local k3d) with the bundled Traefik ingress controller.
+
+- [k8s/namespace.yaml](k8s/namespace.yaml) - `agora` namespace.
+- [k8s/api-deployment.yaml](k8s/api-deployment.yaml) / [k8s/api-service.yaml](k8s/api-service.yaml) - NestJS API, 3 replicas.
+- [k8s/web-deployment.yaml](k8s/web-deployment.yaml) / [k8s/web-service.yaml](k8s/web-service.yaml) - Vite/nginx web, 2 replicas.
+- [k8s/ingress.yaml](k8s/ingress.yaml) - Traefik `IngressRoute`: `/api` → api, `/` → web. The API keeps the `/api` prefix (set via `setGlobalPrefix`), so no strip-prefix middleware.
+- [k8s/api-hpa.yaml](k8s/api-hpa.yaml) - HPA for the api: min 3, max 6, target 70% CPU.
+
+Secrets and the GHCR pull secret are created out of band (not committed):
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+
+kubectl -n agora create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=<gh-user> \
+  --docker-password=<gh-token>
+
+kubectl -n agora create secret generic agora-secrets \
+  --from-literal=DATABASE_URL=... \
+  --from-literal=DIRECT_URL=... \
+  --from-literal=SUPABASE_URL=... \
+  --from-literal=SUPABASE_JWT_SECRET=... \
+  --from-literal=OPENAI_API_KEY=...
+
+kubectl apply -f k8s/
+```
+
+CD bumps the image tag in the deployments from the placeholder `0000000` to the commit SHA.
+
 ## Endpoints
 
 - `GET  /api/users`

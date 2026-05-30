@@ -23,14 +23,15 @@ RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 COPY --from=deps /workspace ./
 COPY apps/api ./apps/api
 COPY packages/shared ./packages/shared
-RUN pnpm --filter @agora/api db:generate \
+RUN pnpm --filter @agora/shared build \
+ && pnpm --filter @agora/api db:generate \
  && pnpm --filter @agora/api build
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     PNPM_STORE_DIR=/pnpm-store \
-    pnpm --filter @agora/api deploy --prod /deploy
+    pnpm --filter @agora/api deploy --legacy --prod /deploy
 # Regenerate Prisma client into /deploy (pnpm deploy re-installs from the
 # store and drops the previously generated client).
-RUN cd /deploy && /workspace/node_modules/.bin/prisma generate
+RUN cd /deploy && ./node_modules/.bin/prisma generate
 
 # Stage 3 - runtime
 FROM node:${NODE_VERSION}-alpine AS runner
