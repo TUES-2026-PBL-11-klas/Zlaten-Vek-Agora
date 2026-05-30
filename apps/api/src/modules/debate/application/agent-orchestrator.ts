@@ -243,30 +243,59 @@ export class AgentOrchestrator {
   }
 
   private async saveJudgeSummary(debateId: string, judgeText: string, personas: PersonaEntity[]) {
+    type ParsedShift = {
+      personaId?: string;
+      openedQuote?: string;
+      closedQuote?: string;
+      shiftPercent?: number;
+    };
     let parsed: {
       contradictions?: string[];
-      commonPoints?: string[];
-      compromises?: string[];
-      groupSummaries?: Record<string, string>;
+      commonGround?: string[];
+      compromise?: string[];
+      participantShifts?: ParsedShift[];
+      closingStatement?: string;
     } = {};
 
     try {
       parsed = JSON.parse(judgeText) as typeof parsed;
     } catch {
       this.logger.warn(`JudgeAgent for debate ${debateId} returned non-JSON, using fallback`);
-      const groupSummaries: Record<string, string> = {};
-      for (const p of personas) {
-        groupSummaries[p.name] = "";
-      }
-      parsed = { contradictions: [], commonPoints: [], compromises: [], groupSummaries };
+      parsed = {
+        contradictions: [],
+        commonGround: [],
+        compromise: [],
+        participantShifts: [],
+        closingStatement: "",
+      };
     }
+
+    const validIds = new Set(personas.map((p) => p.id));
+    const order = new Map(personas.map((p, idx) => [p.id, idx]));
+    const shifts = (parsed.participantShifts ?? [])
+      .filter(
+        (s): s is Required<ParsedShift> =>
+          typeof s.personaId === "string" &&
+          validIds.has(s.personaId) &&
+          typeof s.openedQuote === "string" &&
+          typeof s.closedQuote === "string" &&
+          typeof s.shiftPercent === "number",
+      )
+      .map((s) => ({
+        personaId: s.personaId,
+        openedQuote: s.openedQuote,
+        closedQuote: s.closedQuote,
+        shiftPercent: Math.min(Math.max(Math.round(s.shiftPercent), 0), 100),
+      }))
+      .sort((a, b) => (order.get(a.personaId) ?? 0) - (order.get(b.personaId) ?? 0));
 
     return this.judgeSummaries.save({
       debateId,
       contradictions: parsed.contradictions ?? [],
-      commonPoints: parsed.commonPoints ?? [],
-      compromises: parsed.compromises ?? [],
-      groupSummaries: parsed.groupSummaries ?? {},
+      commonGround: parsed.commonGround ?? [],
+      compromise: parsed.compromise ?? [],
+      participantShifts: shifts,
+      closingStatement: parsed.closingStatement ?? "",
     });
   }
 }

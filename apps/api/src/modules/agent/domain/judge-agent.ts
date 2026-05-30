@@ -2,52 +2,49 @@ import { AgentContext, LLMMessage } from "./agent-context";
 import { BaseAgent } from "./base-agent";
 import { ILLMClient } from "./i-llm-client";
 
-const JUDGE_SYSTEM_PROMPT = `You are a neutral moderator synthesising a multi-stakeholder debate about proposed legislation.
+const JUDGE_PERSONA = "Impartial parliamentary mediator";
 
-Your task is to read the full debate transcript and produce a structured synthesis.
+const JUDGE_SYSTEM_PROMPT = `You are an impartial parliamentary mediator synthesising a structured debate transcript on a legislative bill.
 
-Return ONLY a valid JSON object — no markdown fences, no commentary — matching this exact shape:
+You must produce a JSON object with EXACTLY this shape and no additional keys:
+
 {
-  "contradictions": [
-    "One sentence describing a genuine conflict between two parties' positions."
+  "contradictions": ["...", "...", "..."],
+  "commonGround": ["...", "...", "..."],
+  "compromise": ["...", "...", "..."],
+  "participantShifts": [
+    {
+      "personaId": "<exact persona id from the roster>",
+      "openedQuote": "<a short verbatim or paraphrased line from this persona's Round 1 contribution>",
+      "closedQuote": "<a short verbatim or paraphrased line from this persona's Round 3 contribution>",
+      "shiftPercent": <integer between 0 and 100 estimating how far this persona moved from their opening stance>
+    }
   ],
-  "commonPoints": [
-    "One sentence describing a view or concern shared by multiple parties."
-  ],
-  "compromises": [
-    "One concrete amendment or policy change that could reduce friction between parties."
-  ],
-  "groupSummaries": {
-    "Participant Name": "Two sentences summarising their core position and primary concern."
-  }
+  "closingStatement": "<one neutral, civic sentence delivered as the mediator's closing remark>"
 }
 
-RULES
-- JSON keys MUST stay in English exactly as shown above.
-- All string values MUST be written in Bulgarian.
-- Provide 2-4 contradictions, 2-4 common points, and 2-3 compromises.
-- Include every participant in groupSummaries — use their exact name as the key.
-- Be specific: reference actual claims from the transcript, not generalities.
-- Be balanced: do not favour any participant.`;
+Strict rules:
+- contradictions: exactly 3 numbered fault lines, each a single sentence describing where positions clashed.
+- commonGround: exactly 3 single-sentence agreements that genuinely emerged across the table.
+- compromise: exactly 3 actionable proposals describing the shape of a workable settlement.
+- participantShifts: one entry per persona in the supplied roster, in roster order, each personaId matching exactly.
+- shiftPercent: integer; 0 means unmoved, 100 means a full pivot. Anchor in evidence from the transcript.
+- closingStatement: civic, calm, lowercase phrasing ending with a period. Do not use em dashes.
+- Return ONLY the JSON object. No markdown fences, no preamble, no trailing commentary.`;
 
 export class JudgeAgent extends BaseAgent {
   constructor(llmClient: ILLMClient) {
-    super("judge", "Judge", llmClient);
+    super("judge", JUDGE_PERSONA, llmClient);
   }
 
   async *generateResponse(context: AgentContext): AsyncIterable<string> {
-    const debateTranscript = context.history.map((m) => m.content).join("\n\n");
-
     const messages: LLMMessage[] = [
       { role: "system", content: JUDGE_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `BILL TEXT\n${context.billText}\n\nDEBATE TRANSCRIPT\n${debateTranscript}\n\nProvide your synthesis now.`,
-      },
+      ...context.history,
     ];
 
     const stream = this.llmClient.streamCompletion(messages, {
-      temperature: 0.2,
+      temperature: 0.3,
       responseFormat: { type: "json_object" },
     });
 
@@ -56,3 +53,5 @@ export class JudgeAgent extends BaseAgent {
     }
   }
 }
+
+export const JUDGE_PERSONA_LABEL = JUDGE_PERSONA;
