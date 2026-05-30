@@ -25,9 +25,9 @@ export class PrismaPersonaRepository implements IPersonaRepository {
             debateId: p.debateId,
             name: p.name,
             demographic: p.demographic,
-            interests: p.interests as unknown as Prisma.InputJsonValue,
-            fears: p.fears as unknown as Prisma.InputJsonValue,
-            priorities: p.priorities as unknown as Prisma.InputJsonValue,
+            interests: p.interests,
+            fears: p.fears,
+            priorities: p.priorities,
             color: p.color,
             avatarUrl: p.avatarUrl,
           },
@@ -46,12 +46,9 @@ export class PrismaPersonaRepository implements IPersonaRepository {
         const payload: Prisma.PersonaUpdateInput = {};
         if (data.name !== undefined) payload.name = data.name;
         if (data.demographic !== undefined) payload.demographic = data.demographic;
-        if (data.interests !== undefined)
-          payload.interests = data.interests as unknown as Prisma.InputJsonValue;
-        if (data.fears !== undefined)
-          payload.fears = data.fears as unknown as Prisma.InputJsonValue;
-        if (data.priorities !== undefined)
-          payload.priorities = data.priorities as unknown as Prisma.InputJsonValue;
+        if (data.interests !== undefined) payload.interests = data.interests;
+        if (data.fears !== undefined) payload.fears = data.fears;
+        if (data.priorities !== undefined) payload.priorities = data.priorities;
         if (data.color !== undefined) payload.color = data.color;
         if (data.avatarUrl !== undefined) payload.avatarUrl = data.avatarUrl;
         return this.prisma.persona.update({ where: { id }, data: payload });

@@ -20,6 +20,7 @@ import {
 import { DebateAlreadyRunningException } from "../../../common/exceptions/debate-already-running.exception";
 import { DebateNotStartableException } from "../../../common/exceptions/debate-not-startable.exception";
 import { DebateNotFoundException } from "../domain/debate-not-found.exception";
+import { MetricsService } from "../../metrics/metrics.service";
 
 export const ROUND_PHASES: RoundType[] = [
   RoundType.Position,
@@ -59,6 +60,7 @@ export class AgentOrchestrator {
     @Inject(DEBATE_MESSAGE_REPOSITORY) private readonly messages: IDebateMessageRepository,
     @Inject(JUDGE_SUMMARY_REPOSITORY) private readonly judgeSummaries: IJudgeSummaryRepository,
     private readonly factory: PersonaAgentFactory,
+    private readonly metrics: MetricsService,
   ) {}
 
   async start(debateId: string, options: StartOptions = {}): Promise<void> {
@@ -96,15 +98,20 @@ export class AgentOrchestrator {
     this.sessions.set(debateId, session);
     await this.debates.updateStatus(debateId, DebateStatus.Running);
 
+    const endTimer = this.metrics.debateGenerationDuration.startTimer();
+
     // Defer to a macro-task so callers can subscribe to session.subject before
     // the first event fires (important for tests; negligible latency in production).
     setImmediate(() => {
-      void this.runSession(session).catch((err: unknown) => {
-        this.logger.error(`Session ${debateId} failed: ${String(err)}`);
-        session.subject.next({ type: "error", data: { message: String(err) } });
-        session.subject.complete();
-        this.sessions.delete(debateId);
-      });
+      void this.runSession(session)
+        .then(() => endTimer())
+        .catch((err: unknown) => {
+          endTimer();
+          this.logger.error(`Session ${debateId} failed: ${String(err)}`);
+          session.subject.next({ type: "error", data: { message: String(err) } });
+          session.subject.complete();
+          this.sessions.delete(debateId);
+        });
     });
   }
 

@@ -8,6 +8,7 @@ module.exports = {
   transform: { "^.+\\.ts$": ["ts-jest", { tsconfig: "<rootDir>/../tsconfig.spec.json" }] },
   moduleNameMapper: {
     "^jwks-rsa$": "<rootDir>/../test/stubs/jwks-rsa.ts",
+    "^@agora/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
   collectCoverageFrom: ["**/*.ts", "!**/*.module.ts", "!**/*.spec.ts", "!main.ts"],

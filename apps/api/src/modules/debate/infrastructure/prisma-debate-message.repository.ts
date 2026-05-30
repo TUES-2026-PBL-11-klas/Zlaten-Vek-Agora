@@ -57,15 +57,20 @@ function toEntity(row: PrismaMessageWithRelations): DebateMessageEntity {
   };
 }
 
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((s): s is string => typeof s === "string");
+}
+
 function toPersona(p: PrismaMessageWithRelations["persona"]): PersonaEntity {
   return {
     id: p.id,
     debateId: p.debateId,
     name: p.name,
     demographic: p.demographic,
-    interests: (p.interests as string[]) ?? [],
-    fears: (p.fears as string[]) ?? [],
-    priorities: (p.priorities as string[]) ?? [],
+    interests: toStringArray(p.interests),
+    fears: toStringArray(p.fears),
+    priorities: toStringArray(p.priorities),
     color: p.color,
     avatarUrl: p.avatarUrl,
     createdAt: p.createdAt,

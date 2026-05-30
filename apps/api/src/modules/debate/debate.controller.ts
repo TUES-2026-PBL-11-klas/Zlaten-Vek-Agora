@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { Observable, map } from "rxjs";
+import { Observable, finalize, map } from "rxjs";
 import type {
   CreateDebateResponseDto,
   DebateChamberStatsDto,
@@ -33,6 +33,7 @@ import { toAnalysisResultDto } from "../analysis/analysis.mapper";
 import { AnalysisFailedException } from "../../common/exceptions/analysis-failed.exception";
 import { PersonaGenerationException } from "../../common/exceptions/persona-generation.exception";
 import { toPersonaDraftDto } from "../persona/persona.mapper";
+import { MetricsService } from "../metrics/metrics.service";
 import { AgentOrchestrator } from "./application/agent-orchestrator";
 import { DebateService } from "./debate.service";
 import { CreateDebateBodyDto } from "./dto/create-debate.dto";
@@ -49,6 +50,7 @@ export class DebateController {
     private readonly debates: DebateService,
     private readonly analysis: AnalysisService,
     private readonly orchestrator: AgentOrchestrator,
+    private readonly metrics: MetricsService,
   ) {}
 
   @Post()
@@ -64,6 +66,7 @@ export class DebateController {
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<CreateDebateResponseDto> {
     const draft = await this.debates.create(user.userId, body.billTitle, body.billText, file);
+    this.metrics.debatesCreated.inc();
 
     try {
       const { analysis, personas } = await this.analysis.analyze(draft.debateId);
@@ -123,10 +126,12 @@ export class DebateController {
   @Sse(":id/stream")
   @UseGuards()
   streamDebate(@Param("id") id: string): Observable<MessageEvent> {
+    this.metrics.sseConnectionsActive.inc();
     return this.orchestrator.subscribe(id).pipe(
       map((event: DebateEvent) => {
         return new MessageEvent("message", { data: JSON.stringify(event) });
       }),
+      finalize(() => this.metrics.sseConnectionsActive.dec()),
     );
   }
 

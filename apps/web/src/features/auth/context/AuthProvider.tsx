@@ -18,6 +18,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      if (nextSession) {
+        fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${nextSession.access_token}` },
+        }).catch(() => {});
+      }
     });
 
     return () => {
