@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: grafana
   namespace: observability
-  labels:
-    app: grafana
 spec:
   replicas: 1
   selector:
@@ -20,7 +18,6 @@ spec:
           image: grafana/grafana:10.4.3
           ports:
             - containerPort: 3000
-              name: http
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
               valueFrom:
@@ -38,8 +35,6 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards
             - name: dashboards
               mountPath: /var/lib/grafana/dashboards
-            - name: data
-              mountPath: /var/lib/grafana
           resources:
             requests:
               cpu: 100m
@@ -57,22 +52,3 @@ spec:
         - name: dashboards
           configMap:
             name: grafana-dashboards
-        - name: data
-          persistentVolumeClaim:
-            claimName: grafana-data
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: grafana-data
-  namespace: observability
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
----
-# kubectl create secret generic grafana-secrets \
-#   --from-literal=admin_password=<your-password> \
-#   -n observability

@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: alertmanager
   namespace: observability
-  labels:
-    app: alertmanager
 spec:
   replicas: 1
   selector:
@@ -23,7 +21,6 @@ spec:
             - "--storage.path=/alertmanager"
           ports:
             - containerPort: 9093
-              name: http
           volumeMounts:
             - name: config
               mountPath: /etc/alertmanager/alertmanager.yml
@@ -50,7 +47,3 @@ spec:
             secretName: alertmanager-secrets
         - name: data
           emptyDir: {}
----
-# kubectl create secret generic alertmanager-secrets \
-#   --from-literal=discord_webhook_url=https://discord.com/api/webhooks/ID/TOKEN/slack \
-#   -n observability

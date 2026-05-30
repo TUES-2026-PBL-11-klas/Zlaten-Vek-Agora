@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: prometheus
   namespace: observability
-  labels:
-    app: prometheus
 spec:
   replicas: 1
   selector:
@@ -15,7 +13,6 @@ spec:
       labels:
         app: prometheus
     spec:
-      serviceAccountName: prometheus
       containers:
         - name: prometheus
           image: prom/prometheus:v2.52.0
@@ -26,7 +23,6 @@ spec:
             - "--web.enable-lifecycle"
           ports:
             - containerPort: 9090
-              name: http
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus/prometheus.yml
@@ -51,23 +47,4 @@ spec:
           configMap:
             name: prometheus-alert-rules
         - name: data
-          persistentVolumeClaim:
-            claimName: prometheus-data
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: prometheus
-  namespace: observability
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-data
-  namespace: observability
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
+          emptyDir: {}

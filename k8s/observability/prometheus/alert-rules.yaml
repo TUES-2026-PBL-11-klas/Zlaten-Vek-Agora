@@ -21,9 +21,7 @@ data:
               severity: warning
             annotations:
               summary: "High HTTP error rate on Agora API"
-              description: >-
-                HTTP error rate is {{ printf "%.1f" (mul (div (rate agora_http_errors_total[5m]) (rate agora_http_requests_total[5m])) 100) }}%
-                (threshold 5%) over the last 5 minutes.
+              description: "HTTP error rate has exceeded 5% over the last 5 minutes."
 
           - alert: OpenAILatencyHigh
             expr: |
