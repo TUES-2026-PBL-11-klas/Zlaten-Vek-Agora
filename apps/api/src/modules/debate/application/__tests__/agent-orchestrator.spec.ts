@@ -91,6 +91,7 @@ function makeMockAgent(personaId: string, personaName: string) {
     generateResponse: async function* () {
       yield `Hello from ${personaName}`;
     },
+    classifyEmotion: async () => "calm",
   };
 }
 
@@ -631,6 +632,7 @@ describe("AgentOrchestrator - analysis context injection", () => {
           personaContexts.push(ctx);
           yield "ok";
         },
+        classifyEmotion: async () => "calm",
       })),
       createJudge: jest.fn().mockReturnValue({
         id: "judge",
