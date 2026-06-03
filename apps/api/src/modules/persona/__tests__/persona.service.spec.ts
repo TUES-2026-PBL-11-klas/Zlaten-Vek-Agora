@@ -30,6 +30,9 @@ class FakeDebateRepo implements IDebateRepository {
   updateStatus(): never {
     throw new Error("not used");
   }
+  deleteWithCascade(): never {
+    throw new Error("not used");
+  }
 }
 
 class FakePersonaRepo implements IPersonaRepository {
@@ -88,6 +91,7 @@ function buildPersona(id: string, debateId = "debate-1"): PersonaEntity {
     id,
     debateId,
     name: "Test",
+    role: "Тестова група",
     demographic: "demo",
     interests: ["i"],
     fears: ["f"],
@@ -111,6 +115,7 @@ describe("PersonaService.updatePersonas", () => {
       add: [
         {
           name: "New",
+          role: "Нова група",
           demographic: "demo",
           interests: ["x"],
           fears: ["y"],
@@ -157,6 +162,7 @@ describe("PersonaService.updatePersonas", () => {
       add: [
         {
           name: "Third",
+          role: "Трета група",
           demographic: "demo",
           interests: [],
           fears: [],

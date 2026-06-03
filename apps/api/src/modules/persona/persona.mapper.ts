@@ -5,6 +5,7 @@ export function toPersonaDraftDto(persona: PersonaEntity): PersonaDraftDto {
   return {
     id: persona.id,
     name: persona.name,
+    role: persona.role,
     demographic: persona.demographic,
     interests: persona.interests,
     fears: persona.fears,

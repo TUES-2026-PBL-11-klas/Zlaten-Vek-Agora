@@ -22,7 +22,8 @@ const ROUND_INSTRUCTIONS: Record<RoundType, string> = {
 };
 
 function buildSystemPrompt(persona: PersonaEntity, roundType: RoundType): string {
-  return `You are ${persona.name} — ${persona.demographic}.
+  const role = persona.role ? ` representing ${persona.role}` : "";
+  return `You are ${persona.name}${role} — ${persona.demographic}.
 
 CHARACTER PROFILE
 - Interests: ${persona.interests.join("; ")}
@@ -31,6 +32,7 @@ CHARACTER PROFILE
 
 DEBATE RULES
 - Speak exclusively in Bulgarian (Cyrillic script), in the first person.
+- Your name is ${persona.name}. Refer to yourself by your surname, and address other participants by their surname (e.g. "Колега Иванов").
 - Stay fully in character. Never break the fourth wall or mention AI.
 - Keep your response to 3-5 sentences: concise, concrete, and persuasive.
 - Start your reply directly — no preamble, no salutation.

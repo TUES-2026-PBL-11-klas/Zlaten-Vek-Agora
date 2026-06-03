@@ -78,7 +78,8 @@ export class AnalysisService {
 
       const personaInputs = parsed.groups.map((group, index) => ({
         debateId,
-        name: group.name,
+        name: group.personName,
+        role: group.name,
         demographic: group.demographics,
         interests: group.interests,
         fears: group.fears,
@@ -184,6 +185,7 @@ function validateGroup(value: unknown, index: number): AffectedGroup {
   return {
     id: stringOr(g.id, `group_${index + 1}`),
     name: stringOr(g.name, `Group ${index + 1}`),
+    personName: stringOr(g.personName, `Участник ${index + 1}`),
     estimatedPopulation: stringOr(g.estimatedPopulation, ""),
     demographics: stringOr(g.demographics, ""),
     interests: toStringArray(g.interests),

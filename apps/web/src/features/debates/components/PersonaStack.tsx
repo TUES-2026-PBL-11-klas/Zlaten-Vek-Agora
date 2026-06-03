@@ -30,6 +30,7 @@ export function PersonaStack({ personas, total, size = 32, max = 4 }: PersonaSta
           style={{
             width: size,
             height: size,
+            borderRadius: "50%",
             marginLeft: -size * 0.32,
             fontSize: Math.round(size * 0.35),
           }}

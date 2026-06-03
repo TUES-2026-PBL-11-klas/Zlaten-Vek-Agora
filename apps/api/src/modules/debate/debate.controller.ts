@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -30,10 +31,8 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { Public } from "../auth/decorators/public.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
 import { AnalysisService } from "../analysis/analysis.service";
-import { toAnalysisResultDto } from "../analysis/analysis.mapper";
 import { AnalysisFailedException } from "../../common/exceptions/analysis-failed.exception";
 import { PersonaGenerationException } from "../../common/exceptions/persona-generation.exception";
-import { toPersonaDraftDto } from "../persona/persona.mapper";
 import { MetricsService } from "../metrics/metrics.service";
 import { AgentOrchestrator } from "./application/agent-orchestrator";
 import { DebateService } from "./debate.service";
@@ -69,27 +68,31 @@ export class DebateController {
     const draft = await this.debates.create(user.userId, body.billTitle, body.billText, file);
     this.metrics.debatesCreated.inc();
 
+    // Run the heavy analysis detached so the client lands on the review screen
+    // immediately and polls for status. analyze() flips the debate to Analyzing
+    // right away, then writes the terminal status (PersonasPending /
+    // AnalysisFailed) to the DB when it settles.
+    void this.runAnalysis(draft.debateId);
+
+    return {
+      debateId: draft.debateId,
+      billTitle: draft.billTitle,
+      status: DebateStatus.Analyzing,
+    };
+  }
+
+  private async runAnalysis(debateId: string): Promise<void> {
     try {
-      const { analysis, personas } = await this.analysis.analyze(draft.debateId);
-      return {
-        debateId: draft.debateId,
-        billTitle: draft.billTitle,
-        status: DebateStatus.PersonasPending,
-        personas: personas.map(toPersonaDraftDto),
-        analysis: toAnalysisResultDto(analysis),
-      };
+      await this.analysis.analyze(debateId);
     } catch (err) {
       if (err instanceof AnalysisFailedException || err instanceof PersonaGenerationException) {
-        this.logger.warn(
-          `Analysis failed for debate ${draft.debateId}, returning AnalysisFailed status: ${err.message}`,
+        this.logger.warn(`Analysis failed for debate ${debateId}: ${err.message}`);
+      } else {
+        this.logger.error(
+          `Unexpected analysis error for debate ${debateId}`,
+          err instanceof Error ? err.stack : String(err),
         );
-        return {
-          debateId: draft.debateId,
-          billTitle: draft.billTitle,
-          status: DebateStatus.AnalysisFailed,
-        };
       }
-      throw err;
     }
   }
 
@@ -149,6 +152,12 @@ export class DebateController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<DebateOverviewDto> {
     return this.debates.getOverview(id, user.userId);
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
+    await this.debates.delete(id, user.userId);
   }
 
   @Get(":id")

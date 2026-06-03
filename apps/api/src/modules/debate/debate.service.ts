@@ -132,6 +132,11 @@ export class DebateService {
     };
   }
 
+  async delete(id: string, userId: string): Promise<void> {
+    await this.requireOwnership(id, userId);
+    await this.debates.deleteWithCascade(id);
+  }
+
   async requireOwnership(id: string, userId: string): Promise<void> {
     const debate = await this.debates.findById(id);
     if (!debate || debate.userId !== userId) {

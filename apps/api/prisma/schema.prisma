@@ -43,6 +43,7 @@ model Persona {
   id          String   @id @default(uuid())
   debateId    String   @map("debate_id")
   name        String
+  role        String   @default("")
   demographic String
   interests   Json
   fears       Json

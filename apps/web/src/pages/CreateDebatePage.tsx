@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import type { CreateDebateResponseDto, PersonaDraftDto } from "@agora/shared";
 import { DebateStatus } from "@agora/shared";
 import { PersonaAvatar } from "@/features/debates/components/PersonaAvatar";
+import { personaColor } from "@/features/debates/lib/persona-avatar";
 import { useCreateDebateMutation } from "@/features/debates/api/use-create-debate-mutation";
 import { useUpdatePersonasMutation } from "@/features/debates/api/use-update-personas-mutation";
 import { useStartDebateMutation } from "@/features/debates/api/use-start-debate-mutation";
@@ -238,12 +239,13 @@ interface PersonaReviewProps {
   initialStatus: DebateStatus;
 }
 
-function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaReviewProps) {
+export function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaReviewProps) {
   const navigate = useNavigate();
   const [personas, setPersonas] = useState<PersonaDraftDto[]>(initialPersonas);
 
   // Poll overview while analysis is still running
-  const needsPolling = initialStatus === DebateStatus.Analyzing;
+  const needsPolling =
+    initialStatus === DebateStatus.Analyzing || initialStatus === DebateStatus.Draft;
   const statusQuery = useDebateStatusQuery(needsPolling ? debateId : null);
   const polledStatus = statusQuery.data?.status ?? initialStatus;
 
@@ -268,7 +270,8 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
     navigate(`/debates/${debateId}`);
   }
 
-  const isAnalyzing = polledStatus === DebateStatus.Analyzing;
+  const isAnalyzing =
+    polledStatus === DebateStatus.Analyzing || polledStatus === DebateStatus.Draft;
   const hasFailed = polledStatus === DebateStatus.AnalysisFailed;
   const canStart = polledStatus === DebateStatus.PersonasPending && displayPersonas.length >= 2;
 
@@ -303,13 +306,21 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
       </div>
 
       {isAnalyzing && (
-        <div className="flex items-center gap-4 rounded-2xl border border-hair bg-surface px-6 py-5">
-          <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-ink-muted border-t-transparent" />
-          <p className="text-[14px] text-ink-body">
-            The chamber is reading the bill and identifying affected groups. This takes 10-30
-            seconds.
-          </p>
-        </div>
+        <>
+          <div className="flex items-center gap-4 rounded-2xl border border-hair bg-surface px-6 py-5">
+            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-ink-muted border-t-transparent" />
+            <p className="text-[14px] text-ink-body">
+              The chamber is reading the bill and identifying affected groups. This takes 10-30
+              seconds.
+            </p>
+          </div>
+
+          <ul aria-hidden="true" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <PersonaCardSkeleton key={i} />
+            ))}
+          </ul>
+        </>
       )}
 
       {hasFailed && (
@@ -338,14 +349,14 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
             {displayPersonas.map((persona) => (
               <li
                 key={persona.id}
-                className="relative rounded-2xl border border-hair bg-surface p-6"
+                className="relative flex flex-col overflow-hidden rounded-2xl border border-hair bg-surface transition-colors hover:border-ink-label/40"
               >
                 <button
                   type="button"
                   onClick={() => void handleRemove(persona.id)}
                   disabled={displayPersonas.length <= 2}
                   aria-label={`Remove ${persona.name}`}
-                  className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-mut hover:text-ink-primary disabled:opacity-30"
+                  className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-mut hover:text-ink-primary disabled:opacity-30"
                 >
                   <svg
                     width="12"
@@ -362,22 +373,37 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
                   </svg>
                 </button>
 
-                <div className="flex items-start gap-4">
-                  <PersonaAvatar name={persona.name} color={persona.color} size={48} />
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-[14px] font-medium leading-5 text-ink-primary">
+                <div className="flex min-h-[136px] items-start gap-3.5 p-5 pb-4">
+                  <PersonaAvatar name={persona.name} color={persona.color} size={44} />
+                  <div className="min-w-0 flex-1 pr-6">
+                    <p className="truncate text-[15px] font-medium leading-5 text-ink-primary">
                       {persona.name}
                     </p>
-                    <p className="text-[12px] leading-4 text-ink-muted">{persona.demographic}</p>
+                    {persona.role && (
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-accent-rust">
+                        {persona.role}
+                      </p>
+                    )}
+                    <p className="mt-1 line-clamp-3 text-[12px] leading-4 text-ink-muted">
+                      {persona.demographic}
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-3">
-                  {persona.interests.slice(0, 3).length > 0 && (
-                    <TagGroup label="Interests" tags={persona.interests.slice(0, 3)} />
+                <div className="space-y-3 border-t border-hair/70 px-5 py-4">
+                  {persona.interests.slice(0, 4).length > 0 && (
+                    <TagGroup
+                      label="Interests"
+                      tags={persona.interests.slice(0, 4)}
+                      dotColor={personaColor(persona.color)}
+                    />
                   )}
-                  {persona.fears.slice(0, 2).length > 0 && (
-                    <TagGroup label="Fears" tags={persona.fears.slice(0, 2)} />
+                  {persona.fears.slice(0, 3).length > 0 && (
+                    <TagGroup
+                      label="Fears"
+                      tags={persona.fears.slice(0, 3)}
+                      dotColor="var(--color-persona-terracotta)"
+                    />
                   )}
                 </div>
               </li>
@@ -404,22 +430,59 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
   );
 }
 
-function TagGroup({ label, tags }: { label: string; tags: string[] }) {
+function PersonaCardSkeleton() {
+  return (
+    <li className="animate-pulse rounded-2xl border border-hair bg-surface p-6">
+      <div className="flex items-start gap-4">
+        <div className="h-12 w-12 shrink-0 rounded-full bg-surface-mut" />
+        <div className="min-w-0 flex-1 space-y-2 pt-1">
+          <div className="h-3.5 w-3/4 rounded bg-surface-mut" />
+          <div className="h-3 w-1/2 rounded bg-surface-mut" />
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <div className="space-y-1.5">
+          <div className="h-2.5 w-16 rounded bg-surface-mut" />
+          <div className="flex flex-wrap gap-1">
+            <div className="h-5 w-16 rounded-full bg-surface-mut" />
+            <div className="h-5 w-12 rounded-full bg-surface-mut" />
+            <div className="h-5 w-14 rounded-full bg-surface-mut" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="h-2.5 w-12 rounded bg-surface-mut" />
+          <div className="flex flex-wrap gap-1">
+            <div className="h-5 w-14 rounded-full bg-surface-mut" />
+            <div className="h-5 w-16 rounded-full bg-surface-mut" />
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function TagGroup({ label, tags, dotColor }: { label: string; tags: string[]; dotColor: string }) {
   return (
     <div>
-      <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-label">
+      <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-label">
         {label}
       </p>
-      <div className="flex flex-wrap gap-1">
+      <ul className="flex flex-wrap gap-1.5">
         {tags.map((tag) => (
-          <span
+          <li
             key={tag}
-            className="rounded-full border border-hair bg-surface-mut px-2 py-0.5 text-[11px] text-ink-body"
+            className="inline-flex items-center gap-1.5 rounded-full border border-hair bg-surface-mut px-2.5 py-1 text-[11px] leading-none text-ink-body"
           >
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ backgroundColor: dotColor }}
+            />
             {tag}
-          </span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

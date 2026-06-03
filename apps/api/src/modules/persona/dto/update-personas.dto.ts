@@ -25,6 +25,11 @@ export class PersonaAddBodyDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(MAX_NAME)
+  role!: string;
+
+  @IsString()
+  @MinLength(1)
   @MaxLength(MAX_DEMOGRAPHIC)
   demographic!: string;
 
@@ -65,6 +70,12 @@ export class PersonaUpdateBodyDto {
   @MinLength(1)
   @MaxLength(MAX_NAME)
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(MAX_NAME)
+  role?: string;
 
   @IsOptional()
   @IsString()

@@ -46,6 +46,7 @@ export class PersonaService {
       const additions = request.add.map((p, i) => ({
         debateId,
         name: p.name,
+        role: p.role,
         demographic: p.demographic,
         interests: p.interests,
         fears: p.fears,

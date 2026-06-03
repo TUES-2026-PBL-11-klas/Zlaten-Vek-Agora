@@ -28,15 +28,19 @@ export function PersonaAvatar({
   return (
     <span
       className={[
-        "inline-flex items-center justify-center rounded-full font-medium text-cream",
+        "inline-flex shrink-0 items-center justify-center font-medium text-cream",
         ring ? "ring-2 ring-surface" : "",
         size >= 56 ? "font-serif" : "",
       ].join(" ")}
       style={{
         width: size,
         height: size,
+        minWidth: size,
+        minHeight: size,
+        borderRadius: "50%",
         backgroundColor: personaColor(color),
         fontSize: Math.round(size * 0.4),
+        lineHeight: 1,
         boxShadow: shadows,
       }}
       aria-label={name}

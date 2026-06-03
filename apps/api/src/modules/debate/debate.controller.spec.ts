@@ -85,6 +85,9 @@ class FakeDebateRepository implements IDebateRepository {
   updateStatus(): Promise<DebateEntity> {
     throw new Error("not used");
   }
+  deleteWithCascade(): Promise<void> {
+    throw new Error("not used");
+  }
 }
 
 class FakeExtractor implements IBillTextExtractor {

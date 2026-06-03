@@ -43,6 +43,7 @@ const makePersona = (id: string, debateId = "debate-1"): PersonaEntity => ({
   id,
   debateId,
   name: `Participant ${id}`,
+  role: "Test group",
   demographic: "Test demographic",
   interests: ["interest"],
   fears: ["fear"],

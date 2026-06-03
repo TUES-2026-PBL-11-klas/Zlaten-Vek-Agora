@@ -13,7 +13,8 @@ export function useDebateStatusQuery(debateId: string | null | undefined) {
     enabled: Boolean(debateId),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === DebateStatus.Analyzing ? 2000 : false;
+      // Keep polling through the brief Draft window before analyze() flips to Analyzing.
+      return status === DebateStatus.Analyzing || status === DebateStatus.Draft ? 2000 : false;
     },
   });
 }

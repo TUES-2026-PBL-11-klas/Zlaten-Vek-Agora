@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SynthesisPage } from "@/pages/SynthesisPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { ReviewPersonasPage } from "@/pages/ReviewPersonasPage";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/shared/lib/notify";
@@ -147,6 +148,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute>
                 <CreateDebatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/debates/:id/review"
+            element={
+              <ProtectedRoute>
+                <ReviewPersonasPage />
               </ProtectedRoute>
             }
           />

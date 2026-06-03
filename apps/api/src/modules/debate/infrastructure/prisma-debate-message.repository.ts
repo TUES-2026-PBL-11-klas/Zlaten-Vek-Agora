@@ -67,6 +67,7 @@ function toPersona(p: PrismaMessageWithRelations["persona"]): PersonaEntity {
     id: p.id,
     debateId: p.debateId,
     name: p.name,
+    role: p.role,
     demographic: p.demographic,
     interests: toStringArray(p.interests),
     fears: toStringArray(p.fears),

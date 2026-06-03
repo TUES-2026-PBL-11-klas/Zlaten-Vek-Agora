@@ -9,6 +9,7 @@ export interface PersonaDto {
 
 export interface PersonaAddDto {
   name: string;
+  role: string;
   demographic: string;
   interests: string[];
   fears: string[];
@@ -20,6 +21,7 @@ export interface PersonaAddDto {
 export interface PersonaUpdateDto {
   id: string;
   name?: string;
+  role?: string;
   demographic?: string;
   interests?: string[];
   fears?: string[];
