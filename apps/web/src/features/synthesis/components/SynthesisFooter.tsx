@@ -7,7 +7,7 @@ interface SynthesisFooterProps {
 
 export function SynthesisFooter({ onReRun, onShare }: SynthesisFooterProps) {
   return (
-    <footer className="flex flex-col gap-4 border-t border-hair pt-10 sm:flex-row sm:items-center sm:justify-between print:hidden">
+    <footer className="flex flex-col gap-4 border-t border-hair pt-10 sm:flex-row sm:items-center sm:justify-between">
       <Link
         to="/"
         className="inline-flex h-12 items-center justify-center rounded-full bg-ink-button px-6 text-[14px] font-medium text-cream transition-colors hover:opacity-90"

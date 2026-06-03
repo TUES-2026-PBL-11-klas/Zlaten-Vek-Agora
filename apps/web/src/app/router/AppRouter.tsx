@@ -125,7 +125,7 @@ function AuthNav() {
 
 function TopBar() {
   return (
-    <header className="border-b border-hair print:hidden">
+    <header className="border-b border-hair">
       <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-12">
         <Wordmark />
         <AuthNav />

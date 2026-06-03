@@ -67,27 +67,3 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-
-@media print {
-  @page {
-    margin: 18mm;
-  }
-
-  body {
-    /* Browsers strip backgrounds when printing; keep the warm parchment + ink. */
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  main {
-    /* Use the full printable page instead of the on-screen reading column. */
-    max-width: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* Keep synthesis cards intact across page breaks. */
-  .rounded-2xl {
-    break-inside: avoid;
-  }
-}

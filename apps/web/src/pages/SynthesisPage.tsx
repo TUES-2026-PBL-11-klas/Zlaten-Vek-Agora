@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { AxiosError } from "axios";
+import { toast } from "sonner";
 import {
   useSynthesisQuery,
   useRegenerateSynthesisMutation,
@@ -32,7 +33,17 @@ export function SynthesisPage() {
     );
   }
 
-  return <SynthesisContent synthesis={query.data} onExport={() => window.print()} />;
+  const synthesis = query.data;
+  const handleExport = () => {
+    // Lazy-load the PDF renderer so @react-pdf only ships when a user exports.
+    import("@/features/synthesis/pdf/export-synthesis-pdf")
+      .then(({ exportSynthesisPdf }) => exportSynthesisPdf(synthesis))
+      .catch(() => {
+        toast.error("Could not export the synthesis PDF. Please try again.");
+      });
+  };
+
+  return <SynthesisContent synthesis={synthesis} onExport={handleExport} />;
 }
 
 function SynthesisSkeleton() {

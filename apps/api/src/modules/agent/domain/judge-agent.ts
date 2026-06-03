@@ -20,7 +20,7 @@ You must produce a JSON object with EXACTLY this shape and no additional keys:
       "shiftPercent": <integer between 0 and 100 estimating how far this persona moved from their opening stance>
     }
   ],
-  "closingStatement": "<one neutral, civic sentence delivered as the mediator's closing remark>"
+  "closingStatement": "<the mediator's own reasoned verdict: having weighed every persona's arguments, state where the balance of the debate lands and what the bill should do, in 2-3 sentences, staying as neutral as possible>"
 }
 
 Strict rules:
@@ -29,7 +29,7 @@ Strict rules:
 - compromise: exactly 3 actionable proposals describing the shape of a workable settlement.
 - participantShifts: exactly one entry per persona in the supplied ROSTER, in roster order. Each personaId MUST be copied verbatim from the ROSTER ids - never invent or alter an id, never use a persona name as the id.
 - shiftPercent: integer; 0 means unmoved, 100 means a full pivot. Anchor in evidence from the transcript.
-- closingStatement: civic, calm, lowercase phrasing ending with a period. Use hyphens, not em dashes.
+- closingStatement: the mediator must commit to a substantive position - explicitly judge the bill (support it, reject it, or support it conditional on named changes) and justify the verdict from the strongest arguments raised. Do NOT merely note that participants engaged or showed commitment. Calm, civic tone; use hyphens, not em dashes.
 - Return ONLY the JSON object. No markdown fences, no preamble, no trailing commentary.`;
 
 export class JudgeAgent extends BaseAgent {
