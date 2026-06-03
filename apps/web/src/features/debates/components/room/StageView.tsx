@@ -14,30 +14,40 @@ interface StageViewProps {
   streamEmotions?: Map<string, string>;
 }
 
-const POSITIONS: Record<number, Array<{ top: string; left: string }>> = {
-  1: [{ top: "15%", left: "50%" }],
-  2: [
-    { top: "15%", left: "35%" },
-    { top: "15%", left: "65%" },
-  ],
-  3: [
-    { top: "12%", left: "50%" },
-    { top: "68%", left: "22%" },
-    { top: "68%", left: "78%" },
-  ],
-  4: [
-    { top: "12%", left: "50%" },
-    { top: "48%", left: "85%" },
-    { top: "82%", left: "50%" },
-    { top: "48%", left: "15%" },
-  ],
-  5: [
-    { top: "10%", left: "50%" },
-    { top: "35%", left: "85%" },
-    { top: "74%", left: "74%" },
-    { top: "74%", left: "26%" },
-    { top: "35%", left: "15%" },
-  ],
+// Ring geometry matches the reference circle drawn below
+// (center 50% / 48%, width/height 62% -> radius 31% on each axis).
+const RING_CX = 50;
+const RING_CY = 48;
+const RING_RX = 31;
+const RING_RY = 31;
+
+// Avatar centers sit on the ring, evenly spaced, first one at the top (12 o'clock).
+function ringPositions(count: number): Array<{ top: string; left: string }> {
+  if (count <= 0) return [];
+  return Array.from({ length: count }, (_, i) => {
+    const angle = (i / count) * 2 * Math.PI;
+    const left = RING_CX + RING_RX * Math.sin(angle);
+    const top = RING_CY - RING_RY * Math.cos(angle);
+    return { top: `${top}%`, left: `${left}%` };
+  });
+}
+
+type TooltipPlacement = "top" | "bottom" | "left" | "right";
+
+function tooltipPlacement(pos: { top: string; left: string }): TooltipPlacement {
+  const top = parseFloat(pos.top);
+  const left = parseFloat(pos.left);
+  if (left <= 25) return "right";
+  if (left >= 75) return "left";
+  if (top >= 55) return "top";
+  return "bottom";
+}
+
+const PLACEMENT_CLASSES: Record<TooltipPlacement, string> = {
+  bottom: "left-1/2 top-full -translate-x-1/2 mt-[clamp(4px,0.8cqw,8px)]",
+  top: "left-1/2 bottom-full -translate-x-1/2 mb-[clamp(4px,0.8cqw,8px)]",
+  right: "left-full top-1/2 -translate-y-1/2 ml-[clamp(4px,0.8cqw,8px)]",
+  left: "right-full top-1/2 -translate-y-1/2 mr-[clamp(4px,0.8cqw,8px)]",
 };
 
 function shortName(fullName: string): string {
@@ -67,7 +77,7 @@ export function StageView({
   streamEmotions,
 }: StageViewProps) {
   const count = personas.length;
-  const positions = POSITIONS[Math.min(count, 5) as keyof typeof POSITIONS] ?? POSITIONS[5]!;
+  const positions = ringPositions(count);
   const emotionMap = useMemo(() => {
     const base = buildEmotionMap(allMessages, currentIndex);
     if (streamEmotions) {
@@ -81,7 +91,7 @@ export function StageView({
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-hair bg-surface">
       <div
-        className="relative w-full"
+        className="@container relative w-full"
         style={{
           aspectRatio: "4 / 3.2",
           background:
@@ -101,7 +111,7 @@ export function StageView({
           return (
             <div
               key={persona.id}
-              className="absolute flex flex-col items-center gap-1.5"
+              className="group absolute z-10 flex flex-col items-center gap-[clamp(4px,0.8cqw,6px)] hover:z-30"
               style={{
                 top: pos.top,
                 left: pos.left,
@@ -111,14 +121,16 @@ export function StageView({
               <PersonaAvatar
                 name={persona.name}
                 color={persona.color}
-                size={80}
+                size="clamp(44px, 11cqw, 80px)"
                 emotion={emotion}
                 active={isActive}
               />
-              <span className="text-center text-[14px] font-medium text-ink-primary">
+              <span className="text-center text-[clamp(11px,1.6cqw,14px)] font-medium text-ink-primary">
                 {shortName(persona.name)}
               </span>
-              <span className="text-[11px] uppercase tracking-[0.14em] text-ink-label">
+              <span
+                className={`pointer-events-none absolute z-20 w-max max-w-[clamp(140px,30cqw,220px)] rounded-xl border border-hair bg-surface/80 px-3 py-2 text-center text-[clamp(10px,1.3cqw,11px)] uppercase leading-snug tracking-[0.14em] text-ink-muted opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 ${PLACEMENT_CLASSES[tooltipPlacement(pos)]}`}
+              >
                 {persona.demographic}
               </span>
             </div>
@@ -126,35 +138,42 @@ export function StageView({
         })}
 
         <div className="absolute left-1/2 top-[48%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-hair bg-surface">
-            <FileText size={28} strokeWidth={1.5} className="text-ink-muted" />
+          <div
+            className="flex items-center justify-center rounded-xl border border-hair bg-surface"
+            style={{ width: "clamp(44px, 8cqw, 64px)", height: "clamp(44px, 8cqw, 64px)" }}
+          >
+            <FileText
+              strokeWidth={1.5}
+              className="text-ink-muted"
+              style={{ width: "clamp(20px, 3.5cqw, 28px)", height: "clamp(20px, 3.5cqw, 28px)" }}
+            />
           </div>
-          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-muted">
+          <span className="font-mono text-[clamp(10px,1.3cqw,11px)] uppercase tracking-[0.08em] text-ink-muted">
             {billCode}
           </span>
         </div>
 
         <div className="absolute bottom-[14%] left-1/2 -translate-x-1/2">
-          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-label">
+          <span className="font-mono text-[clamp(10px,1.3cqw,11px)] uppercase tracking-[0.08em] text-ink-label">
             {roundLabel}
           </span>
         </div>
 
         <div className="absolute bottom-[9%] left-1/2 flex -translate-x-1/2 items-center gap-1.5">
           <span className="mr-0.5 inline-block h-2 w-2 rounded-full bg-persona-aubergine" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-muted">
+          <span className="font-mono text-[clamp(10px,1.3cqw,11px)] uppercase tracking-[0.08em] text-ink-muted">
             Judge - observing
           </span>
         </div>
 
-        <div className="absolute bottom-[3%] left-1/2 flex -translate-x-1/2 items-center gap-4">
+        <div className="absolute bottom-[3%] left-1/2 flex w-full max-w-[92%] -translate-x-1/2 flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
           {EMOTION_LABELS.map(({ emotion, label }) => (
             <span key={emotion} className="flex items-center gap-1.5">
               <span
                 className="inline-block h-2 w-2 rounded-full"
                 style={{ backgroundColor: emotionColor(emotion) }}
               />
-              <span className="text-[11px] uppercase tracking-[0.08em] text-ink-muted">
+              <span className="text-[clamp(10px,1.3cqw,11px)] uppercase tracking-[0.08em] text-ink-muted">
                 {label}
               </span>
             </span>

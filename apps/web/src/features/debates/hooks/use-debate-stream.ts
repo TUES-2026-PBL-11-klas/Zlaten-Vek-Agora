@@ -5,6 +5,7 @@ import type { DebateEvent } from "@agora/shared";
 export interface StreamedMessage {
   personaId: string;
   personaName: string;
+  roundNumber: number;
   tokens: string;
   complete: boolean;
   messageId?: string;
@@ -96,6 +97,7 @@ function applyEvent(prev: DebateStreamState, event: DebateEvent): DebateStreamSt
           {
             personaId: event.data.personaId,
             personaName: event.data.personaName,
+            roundNumber: prev.currentRound ?? 1,
             tokens: "",
             complete: false,
           },

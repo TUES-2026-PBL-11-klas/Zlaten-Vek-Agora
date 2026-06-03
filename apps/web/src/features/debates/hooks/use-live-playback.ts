@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import type { DebateDetailMessageDto } from "@agora/shared";
+import type { StreamedMessage } from "./use-debate-stream";
 
-export interface PlaybackState {
+export interface LivePlaybackState {
   currentIndex: number;
   isPlaying: boolean;
   total: number;
 }
 
-export type PlaybackAction =
+export type LivePlaybackAction =
   | { type: "NEXT" }
   | { type: "PREV" }
   | { type: "PLAY" }
@@ -15,13 +15,10 @@ export type PlaybackAction =
   | { type: "SEEK"; index: number }
   | { type: "SYNC_TOTAL"; total: number };
 
-export function reducer(state: PlaybackState, action: PlaybackAction): PlaybackState {
+export function reducer(state: LivePlaybackState, action: LivePlaybackAction): LivePlaybackState {
   switch (action.type) {
-    case "NEXT": {
-      const next = Math.min(state.currentIndex + 1, state.total - 1);
-      const done = next >= state.total - 1;
-      return { ...state, currentIndex: next, isPlaying: done ? false : state.isPlaying };
-    }
+    case "NEXT":
+      return { ...state, currentIndex: Math.min(state.currentIndex + 1, state.total - 1) };
     case "PREV":
       return { ...state, currentIndex: Math.max(state.currentIndex - 1, 0) };
     case "PLAY":
@@ -43,13 +40,12 @@ export function reducer(state: PlaybackState, action: PlaybackAction): PlaybackS
 
 const AUTO_PLAY_INTERVAL = 4000;
 
-export function usePlayback(rawMessages: DebateDetailMessageDto[]) {
-  const messages = useMemo(
-    () =>
-      [...rawMessages].sort((a, b) => a.roundNumber - b.roundNumber || a.turnIndex - b.turnIndex),
-    [rawMessages],
-  );
-
+/**
+ * User-controlled cursor over the live SSE stream. The backend keeps generating
+ * personas ahead; the viewer only advances when the user clicks next (or, in
+ * auto-play, once the current turn finishes streaming).
+ */
+export function useLivePlayback(messages: StreamedMessage[]) {
   const total = messages.length;
 
   const [state, dispatch] = useReducer(reducer, {
@@ -63,22 +59,28 @@ export function usePlayback(rawMessages: DebateDetailMessageDto[]) {
   }, [total, state.total]);
 
   const currentMessage = total > 0 ? (messages[state.currentIndex] ?? null) : null;
-  const progress = total > 1 ? state.currentIndex / (total - 1) : 0;
-  const turnLabel =
-    total > 0
-      ? `${String(state.currentIndex + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`
-      : "00 / 00";
+  const canNext = state.currentIndex < total - 1;
+  const canPrev = state.currentIndex > 0;
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
+  // Auto-play advances only once the current turn has fully streamed, so we
+  // never skip a persona that is still mid-response.
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (state.isPlaying) {
-      intervalRef.current = setInterval(() => dispatch({ type: "NEXT" }), AUTO_PLAY_INTERVAL);
+    if (state.isPlaying && currentMessage?.complete && canNext) {
+      timeoutRef.current = setTimeout(() => dispatch({ type: "NEXT" }), AUTO_PLAY_INTERVAL);
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [state.isPlaying]);
+  }, [state.isPlaying, state.currentIndex, currentMessage?.complete, canNext]);
+
+  const turnLabel = useMemo(
+    () =>
+      total > 0
+        ? `${String(state.currentIndex + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`
+        : "00 / 00",
+    [state.currentIndex, total],
+  );
 
   const next = useCallback(() => dispatch({ type: "NEXT" }), []);
   const prev = useCallback(() => dispatch({ type: "PREV" }), []);
@@ -87,15 +89,13 @@ export function usePlayback(rawMessages: DebateDetailMessageDto[]) {
   const seek = useCallback((index: number) => dispatch({ type: "SEEK", index }), []);
 
   return {
-    messages,
     currentIndex: state.currentIndex,
     currentMessage,
     isPlaying: state.isPlaying,
-    progress,
+    total,
     turnLabel,
-    totalTurns: total,
-    canPrev: state.currentIndex > 0,
-    canNext: state.currentIndex < total - 1,
+    canPrev,
+    canNext,
     next,
     prev,
     play,

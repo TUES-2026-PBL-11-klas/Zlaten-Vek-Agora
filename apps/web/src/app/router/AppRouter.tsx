@@ -67,7 +67,12 @@ function AuthNav() {
 
   return (
     <div className="flex items-center gap-4">
-      <div ref={menuRef} className="relative">
+      <div
+        ref={menuRef}
+        className="relative"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
@@ -82,7 +87,7 @@ function AuthNav() {
         {open ? (
           <div
             role="menu"
-            className="absolute right-0 top-[calc(100%+8px)] z-20 flex w-60 flex-col gap-3 rounded-2xl border border-hair bg-surface p-4 shadow-[0_18px_44px_-22px_rgba(31,27,22,0.45)]"
+            className="absolute right-0 top-full z-20 mt-2 flex w-60 flex-col gap-3 rounded-2xl border border-hair bg-surface p-4 shadow-[0_18px_44px_-22px_rgba(31,27,22,0.45)] before:absolute before:-top-2 before:left-0 before:h-2 before:w-full before:content-['']"
           >
             <div className="flex flex-col gap-0.5">
               <span className="text-[11px] uppercase tracking-[0.14em] text-ink-label">

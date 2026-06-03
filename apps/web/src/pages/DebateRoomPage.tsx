@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { DebateStatus } from "@agora/shared";
 import { useDebateDetailQuery } from "@/features/debates/api/use-debate-detail-query";
 import { useAdvanceDebateMutation } from "@/features/debates/api/use-advance-debate-mutation";
@@ -7,6 +7,7 @@ import { StatusPill } from "@/features/debates/components/StatusPill";
 import { DebateTranscript } from "@/features/debates/components/DebateTranscript";
 import { debateCode, formatDate } from "@/features/debates/lib/debate-code";
 import { usePlayback } from "@/features/debates/hooks/use-playback";
+import { useLivePlayback } from "@/features/debates/hooks/use-live-playback";
 import { useDebateStream } from "@/features/debates/hooks/use-debate-stream";
 import { DebateFlowStepper } from "@/features/debates/components/room/DebateFlowStepper";
 import { StageView } from "@/features/debates/components/room/StageView";
@@ -64,25 +65,25 @@ function DebateRoomContent({
   const isRunning = debate.status === DebateStatus.Running;
   const stream = useDebateStream(debateId, isRunning);
   const playback = usePlayback(debate.messages);
+  const live = useLivePlayback(stream.streamedMessages);
   const advanceMutation = useAdvanceDebateMutation();
+  const navigate = useNavigate();
 
   const isLive = isRunning && stream.isStreaming;
 
   useEffect(() => {
-    if (debate.activeTurn && debate.messages.length > 0) {
-      playback.seek(debate.messages.length - 1);
+    if (stream.isComplete && debateId) {
+      navigate(`/synthesis/${debateId}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stream.isComplete, debateId, navigate]);
 
   const liveActiveMessage: ActiveMessage | null = useMemo(() => {
-    const current =
-      stream.streamedMessages.filter((m) => !m.complete).at(-1) ?? stream.streamedMessages.at(-1);
+    const current = live.currentMessage;
     if (!current) return null;
     const persona = debate.personas.find((p) => p.id === current.personaId);
     if (!persona) return null;
-    return fromStreamedMessage(current, persona, stream.currentRound ?? 1);
-  }, [stream.streamedMessages, debate.personas, stream.currentRound]);
+    return fromStreamedMessage(current, persona);
+  }, [live.currentMessage, debate.personas]);
 
   const displayMessage: ActiveMessage | null = isLive
     ? liveActiveMessage
@@ -91,7 +92,7 @@ function DebateRoomContent({
       : null;
 
   const activePersonaId = isLive
-    ? (stream.currentPersonaId ?? debate.activeTurn?.personaId ?? null)
+    ? (live.currentMessage?.personaId ?? debate.activeTurn?.personaId ?? null)
     : (playback.currentMessage?.persona.id ?? null);
 
   const streamEmotions = useMemo(() => {
@@ -102,14 +103,11 @@ function DebateRoomContent({
     return map;
   }, [stream.streamedMessages]);
 
-  const liveCompletedCount = stream.streamedMessages.filter((m) => m.complete).length;
-  const liveTurnLabel = isLive
-    ? `${String(liveCompletedCount + 1).padStart(2, "0")} / --`
-    : playback.turnLabel;
+  const liveTurnLabel = isLive ? live.turnLabel : playback.turnLabel;
 
   const current = debate.rounds.current;
   const currentRound = isLive
-    ? (stream.currentRound ?? current?.number ?? 1)
+    ? (live.currentMessage?.roundNumber ?? stream.currentRound ?? current?.number ?? 1)
     : (playback.currentMessage?.roundNumber ?? current?.number ?? 1);
   const code = debateCode(debate.title, debate.createdAt, debate.id);
   const roundLabel = `Round ${currentRound} of ${debate.rounds.total}`;
@@ -117,6 +115,10 @@ function DebateRoomContent({
 
   function handleAdvance() {
     if (debateId) advanceMutation.mutate(debateId);
+  }
+
+  function handleSkipToSynthesis() {
+    if (debateId) navigate(`/synthesis/${debateId}`);
   }
 
   return (
@@ -170,18 +172,26 @@ function DebateRoomContent({
           {displayMessage && <ActiveQuoteCard message={displayMessage} />}
 
           <PlaybackControls
-            isPlaying={playback.isPlaying}
-            canPrev={playback.canPrev}
-            canNext={playback.canNext}
+            isPlaying={isLive ? live.isPlaying : playback.isPlaying}
+            canPrev={isLive ? live.canPrev : playback.canPrev}
+            canNext={isLive ? live.canNext : playback.canNext}
             progress={playback.progress}
             turnLabel={liveTurnLabel}
-            totalTurns={playback.totalTurns}
+            totalTurns={isLive ? live.total : playback.totalTurns}
             hasSynthesis={debate.hasSynthesis}
-            onPrev={playback.prev}
-            onNext={playback.next}
-            onPlayPause={playback.isPlaying ? playback.pause : playback.play}
+            onPrev={isLive ? live.prev : playback.prev}
+            onNext={isLive ? live.next : playback.next}
+            onPlayPause={
+              isLive
+                ? live.isPlaying
+                  ? live.pause
+                  : live.play
+                : playback.isPlaying
+                  ? playback.pause
+                  : playback.play
+            }
             onSeek={playback.seek}
-            onSkipToSynthesis={playback.skipToSynthesis}
+            onSkipToSynthesis={handleSkipToSynthesis}
             isLive={isLive}
             waitingForAdvance={stream.waitingForAdvance}
             onAdvance={handleAdvance}
