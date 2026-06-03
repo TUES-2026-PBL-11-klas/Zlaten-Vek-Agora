@@ -44,6 +44,7 @@ const FIXTURE: SynthesisDto = {
     },
   ],
   closingStatement: "the chamber leaves with a workable shape, not a settled one.",
+  failed: false,
 };
 
 function render(synthesis: SynthesisDto): string {

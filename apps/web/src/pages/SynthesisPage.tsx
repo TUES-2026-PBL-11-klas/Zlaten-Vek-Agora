@@ -1,11 +1,15 @@
 import { Link, useParams } from "react-router-dom";
 import { AxiosError } from "axios";
-import { useSynthesisQuery } from "@/features/synthesis/api/use-synthesis-query";
+import {
+  useSynthesisQuery,
+  useRegenerateSynthesisMutation,
+} from "@/features/synthesis/api/use-synthesis-query";
 import { SynthesisContent } from "@/features/synthesis/components/SynthesisContent";
 
 export function SynthesisPage() {
   const { id } = useParams<{ id: string }>();
   const query = useSynthesisQuery(id);
+  const regenerate = useRegenerateSynthesisMutation(id);
 
   if (query.isLoading) return <SynthesisSkeleton />;
 
@@ -17,7 +21,18 @@ export function SynthesisPage() {
 
   if (!query.data) return <NotFoundState />;
 
-  return <SynthesisContent synthesis={query.data} />;
+  if (query.data.failed) {
+    return (
+      <FailedSynthesisState
+        debateId={id ?? null}
+        onRegenerate={() => regenerate.mutate()}
+        isRegenerating={regenerate.isPending}
+        error={regenerate.isError ? "Synthesis failed again. Try once more." : null}
+      />
+    );
+  }
+
+  return <SynthesisContent synthesis={query.data} onExport={() => window.print()} />;
 }
 
 function SynthesisSkeleton() {
@@ -64,6 +79,50 @@ function NotReadyState({ debateId }: { debateId: string | null }) {
         >
           Back to dashboard
         </Link>
+      </div>
+    </section>
+  );
+}
+
+function FailedSynthesisState({
+  debateId,
+  onRegenerate,
+  isRegenerating,
+  error,
+}: {
+  debateId: string | null;
+  onRegenerate: () => void;
+  isRegenerating: boolean;
+  error: string | null;
+}) {
+  return (
+    <section className="flex max-w-[640px] flex-col gap-5">
+      <p className="text-[11px] uppercase tracking-[0.14em] text-ink-label">Synthesis failed</p>
+      <h1 className="font-serif text-[40px] leading-[1.1] text-ink-primary">
+        The judge could not produce a structured verdict.
+      </h1>
+      <p className="text-[16px] leading-7 text-ink-body">
+        The mediator returned an incomplete result - the transcript is intact and the synthesis can
+        be run again without losing any debate content.
+      </p>
+      {error ? <p className="text-[14px] leading-6 text-accent-rust">{error}</p> : null}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onRegenerate}
+          disabled={isRegenerating}
+          className="inline-flex h-12 items-center justify-center rounded-full bg-ink-button px-6 text-[14px] font-medium text-cream transition-colors hover:opacity-90 disabled:opacity-50"
+        >
+          {isRegenerating ? "Regenerating..." : "Regenerate synthesis"}
+        </button>
+        {debateId ? (
+          <Link
+            to={`/debates/${debateId}`}
+            className="inline-flex h-12 items-center justify-center rounded-full bg-surface px-6 text-[14px] font-medium text-ink-primary transition-colors hover:bg-surface-mut"
+          >
+            &larr; Back to debate
+          </Link>
+        ) : null}
       </div>
     </section>
   );

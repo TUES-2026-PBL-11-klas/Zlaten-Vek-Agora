@@ -17,4 +17,5 @@ export interface SynthesisDto {
   compromise: string[];
   participantShifts: ParticipantShiftDto[];
   closingStatement: string;
+  failed: boolean;
 }

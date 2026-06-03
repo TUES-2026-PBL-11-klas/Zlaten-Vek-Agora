@@ -1,4 +1,4 @@
-import { RoundType } from "@agora/shared";
+import { RoundType, Emotion, EMOTIONS } from "@agora/shared";
 import { PersonaEntity } from "../../persona/domain/persona.entity";
 import { AgentContext, LLMMessage } from "./agent-context";
 import { BaseAgent } from "./base-agent";
@@ -54,8 +54,8 @@ CHARACTER PROFILE
 - Priorities: ${persona.priorities.join("; ")}
 
 DEBATE RULES
-- Speak exclusively in Bulgarian (Cyrillic script), in the first person.
-- Your name is ${persona.name}. Refer to yourself by your surname, and address other participants by their surname (e.g. "Колега Иванов").
+- Speak exclusively in Bulgarian (Cyrillic script), strictly in the first person ("аз", "моят"). Always speak about yourself as "I", never refer to yourself by your own name in the third person.
+- Your name is ${persona.name}. Address other participants by their surname (e.g. "г-н Иванов", "г-ца Петрова"), but never narrate your own views in the third person.
 - Stay fully in character. Never break the fourth wall or mention AI.
 - Keep your response to 3-5 sentences: concise, concrete, and persuasive.
 - Do not use em dashes; use hyphens instead.
@@ -75,6 +75,26 @@ export class PersonaAgent extends BaseAgent {
 
   get personaName(): string {
     return this.personaEntity.name;
+  }
+
+  async classifyEmotion(text: string): Promise<Emotion> {
+    const messages: LLMMessage[] = [
+      {
+        role: "system",
+        content:
+          "Classify the emotional tone of a Bulgarian debate speech. Reply with exactly one word from: calm, confident, pensive, anxious, tense. No other output.",
+      },
+      { role: "user", content: text },
+    ];
+    let result = "";
+    for await (const token of this.llmClient.streamCompletion(messages, {
+      temperature: 0,
+      maxTokens: 5,
+    })) {
+      result += token;
+    }
+    const word = result.trim().toLowerCase() as Emotion;
+    return EMOTIONS.includes(word) ? word : Emotion.Calm;
   }
 
   async *generateResponse(context: AgentContext): AsyncIterable<string> {

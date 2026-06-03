@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Observable, Subject } from "rxjs";
-import { DebateStatus, RoundType, DebateEvent, Emotion } from "@agora/shared";
+import { DebateStatus, RoundType, DebateEvent } from "@agora/shared";
 import { PersonaAgentFactory } from "../../agent/domain/persona-agent-factory";
 import { PersonaAgent } from "../../agent/domain/persona-agent";
 import { JudgeAgent } from "../../agent/domain/judge-agent";
@@ -219,13 +219,14 @@ export class AgentOrchestrator {
         }
 
         const fullText = tokens.join("");
+        const emotion = await agent.classifyEmotion(fullText);
         const messageEntity = await this.messages.append({
           debateId,
           roundId: roundEntity.id,
           personaId: agent.id,
           content: fullText,
           sequence: messageSequence++,
-          emotion: Emotion.Calm,
+          emotion,
         });
 
         session.history.push({
@@ -238,7 +239,7 @@ export class AgentOrchestrator {
           data: {
             personaId: agent.id,
             messageId: messageEntity.id,
-            emotion: Emotion.Calm,
+            emotion,
           },
         });
       }

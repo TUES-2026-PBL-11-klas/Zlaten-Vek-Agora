@@ -100,6 +100,7 @@ async function buildService(llmClient: ILLMClient): Promise<ServiceUnderTest> {
   const conclusions: jest.Mocked<IJudgeSummaryRepository> = {
     findByDebate: jest.fn(),
     save: jest.fn(),
+    deleteByDebate: jest.fn(),
   };
   const llmSpy: jest.Mocked<ILLMClient> = {
     streamCompletion: jest.fn(llmClient.streamCompletion.bind(llmClient)),

@@ -33,7 +33,7 @@ export function SynthesisHeader({ synthesis, onExport }: SynthesisHeaderProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 print:hidden">
           <Link
             to={`/debates/${synthesis.debateId}`}
             className="inline-flex h-12 items-center justify-center rounded-full bg-surface px-6 text-[14px] font-medium text-ink-primary transition-colors hover:bg-surface-mut"

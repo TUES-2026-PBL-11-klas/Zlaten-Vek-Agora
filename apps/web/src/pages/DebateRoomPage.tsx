@@ -123,6 +123,12 @@ function DebateRoomContent({
 
   return (
     <div className="flex flex-col gap-8">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-[13px] text-accent-rust hover:underline"
+      >
+        &larr; Dashboard
+      </Link>
       <header className="flex flex-col gap-4 border-b border-hair pb-8">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink-muted">
@@ -149,8 +155,16 @@ function DebateRoomContent({
       {view === "stage" ? (
         <>
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[220px_1fr_280px]">
-            <div className="hidden lg:block">
+            <div className="hidden flex-col gap-4 lg:flex">
               <DebateFlowStepper currentRound={currentRound} hasSynthesis={debate.hasSynthesis} />
+              {debate.hasSynthesis && debate.status === DebateStatus.Completed && (
+                <Link
+                  to={`/synthesis/${debateId}`}
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-rust transition-colors hover:text-accent-rust-hi"
+                >
+                  See the synthesis &rarr;
+                </Link>
+              )}
             </div>
 
             <StageView
@@ -178,7 +192,7 @@ function DebateRoomContent({
             progress={playback.progress}
             turnLabel={liveTurnLabel}
             totalTurns={isLive ? live.total : playback.totalTurns}
-            hasSynthesis={debate.hasSynthesis}
+            hasSynthesis={debate.hasSynthesis && debate.status === DebateStatus.Completed}
             onPrev={isLive ? live.prev : playback.prev}
             onNext={isLive ? live.next : playback.next}
             onPlayPause={

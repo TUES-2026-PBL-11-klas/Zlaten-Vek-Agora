@@ -50,11 +50,12 @@ export class JudgeAgent extends BaseAgent {
       { role: "system", content: JUDGE_SYSTEM_PROMPT },
       { role: "user", content: rosterBlock },
       ...context.history,
+      { role: "user", content: "Provide your structured synthesis now as a JSON object." },
     ];
 
     const stream = this.llmClient.streamCompletion(messages, {
       temperature: 0.3,
-      maxTokens: 900,
+      maxTokens: 2000,
       responseFormat: { type: "json_object" },
     });
 
