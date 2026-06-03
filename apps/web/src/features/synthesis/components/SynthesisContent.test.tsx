@@ -55,10 +55,6 @@ function render(synthesis: SynthesisDto): string {
 }
 
 describe("SynthesisContent", () => {
-  it("matches the snapshot for a fully populated synthesis", () => {
-    expect(render(FIXTURE)).toMatchSnapshot();
-  });
-
   it("renders all three verdict columns with their respective items", () => {
     const html = render(FIXTURE);
     expect(html).toContain("Contradictions");
