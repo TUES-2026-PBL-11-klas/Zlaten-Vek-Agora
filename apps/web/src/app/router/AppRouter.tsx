@@ -1,17 +1,16 @@
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { CreateDebatePage } from "@/pages/CreateDebatePage";
 import { DebateRoomPage } from "@/pages/DebateRoomPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SynthesisPage } from "@/pages/SynthesisPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/shared/lib/notify";
 import { AgoraGlyph } from "@/features/debates/lib/agora-glyph";
-
-const APP_VERSION = "prototype · v0.3";
 
 function Wordmark() {
   return (
@@ -20,23 +19,6 @@ function Wordmark() {
         <AgoraGlyph size={26} />
       </span>
       <span className="font-serif text-[22px] leading-none">Agora</span>
-    </NavLink>
-  );
-}
-
-function NavItem({ to, end, children }: { to: string; end?: boolean; children: ReactNode }) {
-  return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        [
-          "inline-flex h-9 items-center rounded-full px-4 text-[14px] font-medium transition-colors",
-          isActive ? "bg-ink-button text-cream" : "text-ink-body hover:text-ink-primary",
-        ].join(" ")
-      }
-    >
-      {children}
     </NavLink>
   );
 }
@@ -72,9 +54,6 @@ function AuthNav() {
   if (!session) {
     return (
       <div className="flex items-center gap-4">
-        <span className="hidden text-[12px] tracking-[0.04em] text-ink-label sm:inline">
-          {APP_VERSION}
-        </span>
         <NavLink
           to="/login"
           className="inline-flex h-9 items-center rounded-full px-4 text-[14px] font-medium text-ink-body hover:text-ink-primary"
@@ -87,9 +66,6 @@ function AuthNav() {
 
   return (
     <div className="flex items-center gap-4">
-      <span className="hidden text-[12px] tracking-[0.04em] text-ink-label sm:inline">
-        {APP_VERSION}
-      </span>
       <div ref={menuRef} className="relative">
         <button
           type="button"
@@ -113,6 +89,14 @@ function AuthNav() {
               </span>
               <span className="truncate text-[13px] text-ink-primary">{user?.email}</span>
             </div>
+            <Link
+              to="/profile"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="inline-flex h-9 items-center justify-center rounded-full border border-hair bg-surface text-[13px] font-medium text-ink-body transition-colors hover:bg-surface-mut"
+            >
+              Profile
+            </Link>
             <button
               type="button"
               role="menuitem"
@@ -138,14 +122,6 @@ function TopBar() {
     <header className="border-b border-hair">
       <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-12">
         <Wordmark />
-        <nav className="flex items-center gap-2">
-          <NavItem to="/" end>
-            Dashboard
-          </NavItem>
-          <NavItem to="/debates/new">Debate room</NavItem>
-          <NavItem to="/synthesis">Synthesis</NavItem>
-          <NavItem to="/design-system">Design system</NavItem>
-        </nav>
         <AuthNav />
       </div>
     </header>
@@ -187,6 +163,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute>
                 <SynthesisPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

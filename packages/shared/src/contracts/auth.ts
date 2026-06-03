@@ -4,3 +4,7 @@ export interface AuthMeResponseDto {
   name: string;
   createdAt: string;
 }
+
+export interface UpdateProfileRequestDto {
+  name: string;
+}

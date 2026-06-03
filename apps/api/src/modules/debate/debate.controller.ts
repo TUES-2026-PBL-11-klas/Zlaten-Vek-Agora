@@ -27,6 +27,7 @@ import { DebateStatus } from "@agora/shared";
 import { Logger } from "@nestjs/common";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { Public } from "../auth/decorators/public.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
 import { AnalysisService } from "../analysis/analysis.service";
 import { toAnalysisResultDto } from "../analysis/analysis.mapper";
@@ -57,7 +58,7 @@ export class DebateController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor("file", {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
   async create(
@@ -121,10 +122,10 @@ export class DebateController {
     await this.orchestrator.start(id, { stepMode: mode === "step" });
   }
 
-  // SSE endpoint - no JwtAuthGuard because EventSource cannot set Authorization headers.
+  // SSE endpoint - EventSource cannot set Authorization headers.
   // The debate ID acts as an opaque capability token.
   @Sse(":id/stream")
-  @UseGuards()
+  @Public()
   streamDebate(@Param("id") id: string): Observable<MessageEvent> {
     this.metrics.sseConnectionsActive.inc();
     return this.orchestrator.subscribe(id).pipe(

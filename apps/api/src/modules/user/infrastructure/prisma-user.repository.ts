@@ -26,4 +26,26 @@ export class PrismaUserRepository implements IUserRepository {
       create: { id, email: data.email, name: data.name },
     });
   }
+
+  async updateName(id: string, name: string): Promise<UserEntity> {
+    return this.prisma.user.update({ where: { id }, data: { name } });
+  }
+
+  async deleteWithCascade(id: string): Promise<void> {
+    const debates = await this.prisma.debate.findMany({
+      where: { userId: id },
+      select: { id: true },
+    });
+    const debateIds = debates.map((d) => d.id);
+
+    await this.prisma.$transaction([
+      this.prisma.debateMessage.deleteMany({ where: { debateId: { in: debateIds } } }),
+      this.prisma.round.deleteMany({ where: { debateId: { in: debateIds } } }),
+      this.prisma.analysisResult.deleteMany({ where: { debateId: { in: debateIds } } }),
+      this.prisma.judgeSummary.deleteMany({ where: { debateId: { in: debateIds } } }),
+      this.prisma.persona.deleteMany({ where: { debateId: { in: debateIds } } }),
+      this.prisma.debate.deleteMany({ where: { userId: id } }),
+      this.prisma.user.delete({ where: { id } }),
+    ]);
+  }
 }

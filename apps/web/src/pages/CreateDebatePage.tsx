@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import type { CreateDebateResponseDto, PersonaDraftDto } from "@agora/shared";
 import { DebateStatus } from "@agora/shared";
 import { PersonaAvatar } from "@/features/debates/components/PersonaAvatar";
@@ -23,17 +23,31 @@ function UploadForm({ onCreated }: UploadFormProps) {
   const [billText, setBillText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const create = useCreateDebateMutation();
+
+  const MAX_FILE_BYTES = 20 * 1024 * 1024;
+
+  function pickFile(f: File) {
+    if (f.type !== "application/pdf") {
+      setFileError("Only PDF files are accepted.");
+      return;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      setFileError(`File is ${(f.size / 1024 / 1024).toFixed(1)} MB - maximum is 20 MB.`);
+      return;
+    }
+    setFileError(null);
+    setFile(f);
+  }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped?.type === "application/pdf") {
-      setFile(dropped);
-    }
+    if (dropped) pickFile(dropped);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -51,7 +65,13 @@ function UploadForm({ onCreated }: UploadFormProps) {
   }
 
   return (
-    <section className="max-w-[640px] space-y-10">
+    <section className="mx-auto max-w-[640px] space-y-10">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-[13px] text-accent-rust hover:underline"
+      >
+        ← Dashboard
+      </Link>
       <div className="space-y-3">
         <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-ink-label">
           New session
@@ -130,7 +150,7 @@ function UploadForm({ onCreated }: UploadFormProps) {
                 className="sr-only"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) setFile(f);
+                  if (f) pickFile(f);
                 }}
               />
               {file ? (
@@ -158,7 +178,7 @@ function UploadForm({ onCreated }: UploadFormProps) {
                     <line x1="9" y1="15" x2="15" y2="15" />
                   </svg>
                   <p className="text-[14px] text-ink-muted">Drop a PDF here, or click to browse</p>
-                  <p className="text-[12px] text-ink-label">Max 10 MB</p>
+                  <p className="text-[12px] text-ink-label">Max 20 MB</p>
                 </>
               )}
             </div>
@@ -181,6 +201,8 @@ function UploadForm({ onCreated }: UploadFormProps) {
               </p>
             </div>
           )}
+
+          {mode === "pdf" && fileError && <p className="text-[13px] text-[#B85A1E]">{fileError}</p>}
         </div>
 
         {create.error && (
@@ -196,7 +218,7 @@ function UploadForm({ onCreated }: UploadFormProps) {
           disabled={
             create.isPending ||
             !title.trim() ||
-            (mode === "pdf" && !file) ||
+            (mode === "pdf" && (!file || !!fileError)) ||
             (mode === "text" && billText.trim().length < 200)
           }
           className="inline-flex h-12 items-center justify-center rounded-full bg-ink-button px-8 text-[14px] font-medium text-cream transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -251,7 +273,13 @@ function PersonaReview({ debateId, initialPersonas, initialStatus }: PersonaRevi
   const canStart = polledStatus === DebateStatus.PersonasPending && displayPersonas.length >= 2;
 
   return (
-    <section className="space-y-10">
+    <section className="mx-auto max-w-[900px] space-y-10">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-[13px] text-accent-rust hover:underline"
+      >
+        ← Dashboard
+      </Link>
       <div className="space-y-3">
         <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-ink-label">
           New session
