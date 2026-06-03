@@ -255,7 +255,6 @@ export class AgentOrchestrator {
       }
     }
 
-    // Judge synthesis
     session.subject.next({ type: "judge_start", data: {} });
 
     const judgeContext = {
