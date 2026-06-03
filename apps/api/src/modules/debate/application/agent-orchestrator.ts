@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Observable, Subject } from "rxjs";
-import { DebateStatus, RoundType, DebateEvent, Emotion } from "@agora/shared";
+import { DebateStatus, RoundType, DebateEvent } from "@agora/shared";
 import { PersonaAgentFactory } from "../../agent/domain/persona-agent-factory";
 import { PersonaAgent } from "../../agent/domain/persona-agent";
 import { JudgeAgent } from "../../agent/domain/judge-agent";
@@ -13,6 +13,10 @@ import {
   IDebateMessageRepository,
 } from "../domain/i-debate-message.repository";
 import { ROUND_REPOSITORY, IRoundRepository } from "../domain/i-round.repository";
+import {
+  ANALYSIS_RESULT_REPOSITORY,
+  IAnalysisResultRepository,
+} from "../../analysis/domain/i-analysis-result.repository";
 import {
   JUDGE_SUMMARY_REPOSITORY,
   IJudgeSummaryRepository,
@@ -44,6 +48,12 @@ interface DebateSession {
   stepMode: boolean;
   /** Resolve function of the current inter-round gate. null in auto-play or when not paused. */
   roundGate: (() => void) | null;
+  /** Bill-wide fault lines from analysis, shared by all personas. */
+  contentiousPoints: string[];
+  /** Headline changes the bill introduces, from analysis. */
+  keyChanges: string[];
+  /** Per-persona stance keyed by persona id, derived from the analysis groups. */
+  stanceByPersonaId: Map<string, { stance: string; reason: string }>;
 }
 
 @Injectable()
@@ -59,6 +69,8 @@ export class AgentOrchestrator {
     @Inject(ROUND_REPOSITORY) private readonly rounds: IRoundRepository,
     @Inject(DEBATE_MESSAGE_REPOSITORY) private readonly messages: IDebateMessageRepository,
     @Inject(JUDGE_SUMMARY_REPOSITORY) private readonly judgeSummaries: IJudgeSummaryRepository,
+    @Inject(ANALYSIS_RESULT_REPOSITORY)
+    private readonly analysisResults: IAnalysisResultRepository,
     private readonly factory: PersonaAgentFactory,
     private readonly metrics: MetricsService,
   ) {}
@@ -83,6 +95,26 @@ export class AgentOrchestrator {
     const agents = personaEntities.map((p) => this.factory.create(p));
     const judgeAgent = this.factory.createJudge();
 
+    // Load the analysis so personas debate the fault lines already identified, and each
+    // speaks from its assigned stance. Match group -> persona by representative name
+    // (group.personName === persona.name), falling back to the group label (group.name
+    // === persona.role). Best-effort: edited personas with no match simply omit stance.
+    const analysis = await this.analysisResults.findByDebate(debateId);
+    const stanceByPersonaId = new Map<string, { stance: string; reason: string }>();
+    if (analysis) {
+      for (const persona of personaEntities) {
+        const group = analysis.affectedGroups.find(
+          (g) => g.personName === persona.name || g.name === persona.role,
+        );
+        if (group) {
+          stanceByPersonaId.set(persona.id, {
+            stance: group.stance,
+            reason: group.stanceReason,
+          });
+        }
+      }
+    }
+
     const session: DebateSession = {
       debateId,
       billText: debate.billText,
@@ -93,6 +125,9 @@ export class AgentOrchestrator {
       subject: new Subject<DebateEvent>(),
       stepMode: options.stepMode ?? false,
       roundGate: null,
+      contentiousPoints: analysis?.contentiousPoints ?? [],
+      keyChanges: analysis?.keyChanges ?? [],
+      stanceByPersonaId,
     };
 
     this.sessions.set(debateId, session);
@@ -173,6 +208,9 @@ export class AgentOrchestrator {
           history: [...session.history],
           roundNumber,
           roundType: phase,
+          contentiousPoints: session.contentiousPoints,
+          keyChanges: session.keyChanges,
+          personaStance: session.stanceByPersonaId.get(agent.id),
         };
 
         for await (const token of agent.generateResponse(context)) {
@@ -181,13 +219,14 @@ export class AgentOrchestrator {
         }
 
         const fullText = tokens.join("");
+        const emotion = await agent.classifyEmotion(fullText);
         const messageEntity = await this.messages.append({
           debateId,
           roundId: roundEntity.id,
           personaId: agent.id,
           content: fullText,
           sequence: messageSequence++,
-          emotion: Emotion.Calm,
+          emotion,
         });
 
         session.history.push({
@@ -200,7 +239,7 @@ export class AgentOrchestrator {
           data: {
             personaId: agent.id,
             messageId: messageEntity.id,
-            emotion: Emotion.Calm,
+            emotion,
           },
         });
       }
@@ -217,7 +256,6 @@ export class AgentOrchestrator {
       }
     }
 
-    // Judge synthesis
     session.subject.next({ type: "judge_start", data: {} });
 
     const judgeContext = {
@@ -225,6 +263,7 @@ export class AgentOrchestrator {
       history: [...session.history],
       roundNumber: ROUND_PHASES.length + 1,
       roundType: RoundType.CommonGround,
+      roster: session.personas.map((p) => ({ id: p.id, name: p.name })),
     };
 
     const judgeTokens: string[] = [];

@@ -62,6 +62,7 @@ describe("DebateService", () => {
       id: "p1",
       debateId: "debate-1",
       name: "Mira K.",
+      role: "Tenant",
       demographic: "Long-term tenant",
       interests: [],
       fears: [],
@@ -96,6 +97,7 @@ describe("DebateService", () => {
       findOverviewById: jest.fn(),
       save: jest.fn(),
       updateStatus: jest.fn(),
+      deleteWithCascade: jest.fn(),
     };
 
     messages = {
@@ -213,6 +215,44 @@ describe("DebateService", () => {
       await expect(service.getOverview("debate-1", otherUserId)).rejects.toBeInstanceOf(
         DebateNotFoundException,
       );
+    });
+  });
+
+  describe("delete", () => {
+    const ownedDebate = {
+      id: "debate-1",
+      userId,
+      title: "Affordable Housing Reform Act of 2026",
+      billText: "...",
+      sourceType: "text",
+      status: DebateStatus.Running,
+      createdAt: new Date("2026-04-11T09:00:00.000Z"),
+    };
+
+    it("cascades the delete when the debate belongs to the caller", async () => {
+      repository.findById.mockResolvedValueOnce(ownedDebate);
+
+      await service.delete("debate-1", userId);
+
+      expect(repository.deleteWithCascade).toHaveBeenCalledWith("debate-1");
+    });
+
+    it("throws DebateNotFoundException for another user's debate without deleting", async () => {
+      repository.findById.mockResolvedValueOnce(ownedDebate);
+
+      await expect(service.delete("debate-1", otherUserId)).rejects.toBeInstanceOf(
+        DebateNotFoundException,
+      );
+      expect(repository.deleteWithCascade).not.toHaveBeenCalled();
+    });
+
+    it("throws DebateNotFoundException when the debate does not exist", async () => {
+      repository.findById.mockResolvedValueOnce(null);
+
+      await expect(service.delete("missing", userId)).rejects.toBeInstanceOf(
+        DebateNotFoundException,
+      );
+      expect(repository.deleteWithCascade).not.toHaveBeenCalled();
     });
   });
 

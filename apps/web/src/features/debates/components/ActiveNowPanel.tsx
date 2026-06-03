@@ -4,26 +4,21 @@ import { DebateStatus } from "@agora/shared";
 import { StatusPill } from "./StatusPill";
 import { PersonaAvatar } from "./PersonaAvatar";
 import { debateCode, formatDate } from "../lib/debate-code";
+import { useDebateOverviewQuery } from "../api/use-debate-overview-query";
 
 interface ActiveNowPanelProps {
   summary: DebateListItemDto;
-  overview: DebateOverviewDto | undefined;
-  isLoading: boolean;
 }
 
-export function ActiveNowPanel({ summary, overview, isLoading }: ActiveNowPanelProps) {
-  return (
-    <section className="mt-10">
-      <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-label">
-        Active now
-      </p>
+export function ActiveNowPanel({ summary }: ActiveNowPanelProps) {
+  const { data: overview, isLoading } = useDebateOverviewQuery(summary.id);
 
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hair bg-hair lg:grid-cols-[1.2fr_1fr_0.9fr]">
-        <BillColumn summary={summary} overview={overview} isLoading={isLoading} />
-        <TableColumn overview={overview} isLoading={isLoading} />
-        <RailColumn summary={summary} overview={overview} isLoading={isLoading} />
-      </div>
-    </section>
+  return (
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hair bg-hair lg:grid-cols-[1.2fr_1fr_0.9fr]">
+      <BillColumn summary={summary} overview={overview} isLoading={isLoading} />
+      <TableColumn overview={overview} isLoading={isLoading} />
+      <RailColumn summary={summary} overview={overview} isLoading={isLoading} />
+    </div>
   );
 }
 
@@ -130,10 +125,16 @@ function RailColumn({
 
       <div className="mt-2 flex flex-col gap-2">
         <Link
-          to={`/debates/${summary.id}`}
+          to={
+            summary.status === DebateStatus.PersonasPending
+              ? `/debates/${summary.id}/review`
+              : `/debates/${summary.id}`
+          }
           className="inline-flex h-11 items-center justify-center rounded-full bg-accent-rust px-5 text-[14px] font-medium text-cream transition-colors hover:bg-accent-rust-hi"
         >
-          Continue debate &rarr;
+          {summary.status === DebateStatus.PersonasPending
+            ? "Review chamber →"
+            : "Continue debate →"}
         </Link>
         {overview?.hasSynthesis ? (
           <Link

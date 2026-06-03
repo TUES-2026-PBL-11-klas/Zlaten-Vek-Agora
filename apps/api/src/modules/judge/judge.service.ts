@@ -48,7 +48,13 @@ export class JudgeService {
 
     const existing = await this.conclusions.findByDebate(debateId);
     if (existing) {
-      return toSynthesisDto(debate.title, debate.createdAt, existing, personaIndex);
+      return toSynthesisDto(
+        debate.title,
+        debate.createdAt,
+        existing,
+        personaIndex,
+        isFailed(existing),
+      );
     }
 
     const overview = await this.debates.findOverviewById(debateId);
@@ -70,7 +76,33 @@ export class JudgeService {
       closingStatement: validated.closingStatement,
     });
 
-    return toSynthesisDto(debate.title, debate.createdAt, saved, personaIndex);
+    return toSynthesisDto(debate.title, debate.createdAt, saved, personaIndex, false);
+  }
+
+  async regenerateSynthesis(debateId: string, userId: string): Promise<SynthesisDto> {
+    const debate = await this.debates.findById(debateId);
+    if (!debate || debate.userId !== userId) {
+      throw new DebateNotFoundException(debateId);
+    }
+
+    await this.conclusions.deleteByDebate(debateId);
+
+    const personas = await this.personas.findByDebate(debateId);
+    const personaIndex = indexPersonas(personas);
+    const messages = await this.messages.findByDebate(debateId);
+    const parsed = await this.invokeAgent(debateId, debate.billText, personas, messages);
+    const validated = validateAndShape(parsed, personas);
+
+    const saved = await this.conclusions.save({
+      debateId,
+      contradictions: validated.contradictions,
+      commonGround: validated.commonGround,
+      compromise: validated.compromise,
+      participantShifts: validated.participantShifts,
+      closingStatement: validated.closingStatement,
+    });
+
+    return toSynthesisDto(debate.title, debate.createdAt, saved, personaIndex, false);
   }
 
   private async invokeAgent(
@@ -241,11 +273,16 @@ function indexPersonas(personas: PersonaEntity[]): Map<string, PersonaEntity> {
   return new Map(personas.map((p) => [p.id, p]));
 }
 
+function isFailed(summary: JudgeSummaryEntity): boolean {
+  return summary.closingStatement === "" && summary.contradictions.length === 0;
+}
+
 function toSynthesisDto(
   title: string,
   createdAt: Date,
   conclusion: JudgeSummaryEntity,
   personaIndex: Map<string, PersonaEntity>,
+  failed: boolean,
 ): SynthesisDto {
   return {
     debateId: conclusion.debateId,
@@ -255,6 +292,7 @@ function toSynthesisDto(
     commonGround: conclusion.commonGround,
     compromise: conclusion.compromise,
     closingStatement: conclusion.closingStatement,
+    failed,
     participantShifts: conclusion.participantShifts.map((shift) => {
       const persona = personaIndex.get(shift.personaId);
       return {

@@ -5,7 +5,7 @@ import { emotionHex } from "../lib/emotion-color";
 interface PersonaAvatarProps {
   name: string;
   color: string;
-  size?: number;
+  size?: number | string;
   ring?: boolean;
   emotion?: Emotion;
   active?: boolean;
@@ -19,7 +19,9 @@ export function PersonaAvatar({
   emotion,
   active = false,
 }: PersonaAvatarProps) {
-  const glow = emotion ? `0 0 ${Math.round(size * 0.4)}px ${emotionHex(emotion)}66` : undefined;
+  const len = typeof size === "number" ? `${size}px` : size;
+  const isLarge = typeof size === "number" ? size >= 56 : true;
+  const glow = emotion ? `0 0 calc(${len} * 0.4) ${emotionHex(emotion)}66` : undefined;
   const activeRing = active
     ? `0 0 0 3px var(--color-surface), 0 0 0 6px ${personaColor(color)}`
     : undefined;
@@ -28,15 +30,19 @@ export function PersonaAvatar({
   return (
     <span
       className={[
-        "inline-flex items-center justify-center rounded-full font-medium text-cream",
+        "inline-flex shrink-0 items-center justify-center font-medium text-cream",
         ring ? "ring-2 ring-surface" : "",
-        size >= 56 ? "font-serif" : "",
+        isLarge ? "font-serif" : "",
       ].join(" ")}
       style={{
-        width: size,
-        height: size,
+        width: len,
+        height: len,
+        minWidth: len,
+        minHeight: len,
+        borderRadius: "50%",
         backgroundColor: personaColor(color),
-        fontSize: Math.round(size * 0.4),
+        fontSize: `calc(${len} * 0.4)`,
+        lineHeight: 1,
         boxShadow: shadows,
       }}
       aria-label={name}

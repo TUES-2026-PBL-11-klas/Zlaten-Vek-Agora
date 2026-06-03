@@ -11,6 +11,7 @@ Return ONLY a valid JSON object (no markdown, no commentary) with this exact sha
     {
       "id": "snake_case_slug",
       "name": "Кратко наименование на групата",
+      "personName": "Г. Фамилия",
       "estimatedPopulation": "~X million / ~X,000",
       "demographics": "Възраст, доход, регион, заетост",
       "interests": ["интерес 1", "интерес 2"],
@@ -26,7 +27,9 @@ Return ONLY a valid JSON object (no markdown, no commentary) with this exact sha
 
 Rules:
 - JSON keys MUST stay in English exactly as shown.
-- All human-readable values (name, demographics, interests, fears, priorities, stanceReason, keyChanges, contentiousPoints) MUST be in Bulgarian to match the UI.
+- All human-readable values (name, personName, demographics, interests, fears, priorities, stanceReason, keyChanges, contentiousPoints) MUST be in Bulgarian to match the UI.
+- "name" is the group label (e.g. "Пенсионери", "Работодатели").
+- "personName" is a single fictional Bulgarian representative who will speak for the group in the debate. Format MUST be one given-name initial + a full surname, e.g. "Г. Иванов", "М. Петрова". Vary gender and surname per group; the surname MUST be distinct across all groups so speakers can address each other by surname.
 - "id" stays in snake_case ASCII.
 - "stance" MUST be one of: Supportive, Opposed, Mixed.
 - Provide 4-6 groups, 3-6 keyChanges, 2-5 contentiousPoints.`;
@@ -44,6 +47,7 @@ export class AnalysisAgent extends BaseAgent {
 
     const stream = this.llmClient.streamCompletion(messages, {
       temperature: 0.3,
+      maxTokens: 1500,
       responseFormat: { type: "json_object" },
     });
 

@@ -23,11 +23,22 @@ export class OpenAIStreamingClient implements ILLMClient {
   async *streamCompletion(messages: LLMMessage[], options?: LLMOptions): AsyncIterable<string> {
     const end = this.metrics.openaiRequestDuration.startTimer();
     try {
+      const model = options?.model ?? this.defaultModel;
+      const isReasoningModel = model.startsWith("gpt-5");
+      const tokenLimit =
+        options?.maxTokens !== undefined
+          ? isReasoningModel
+            ? { max_completion_tokens: options.maxTokens }
+            : { max_tokens: options.maxTokens }
+          : {};
+
       const stream = await this.client.chat.completions.create({
-        model: options?.model ?? this.defaultModel,
+        model,
         messages,
         stream: true,
-        ...(options?.temperature !== undefined && { temperature: options.temperature }),
+        ...(!isReasoningModel &&
+          options?.temperature !== undefined && { temperature: options.temperature }),
+        ...tokenLimit,
         ...(options?.responseFormat && { response_format: options.responseFormat }),
       });
 

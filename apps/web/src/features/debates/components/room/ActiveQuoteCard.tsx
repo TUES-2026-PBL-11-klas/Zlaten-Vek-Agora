@@ -47,13 +47,21 @@ export function ActiveQuoteCard({ message }: ActiveQuoteCardProps) {
               )}
             </div>
           </div>
-          <p className="font-serif text-[22px] italic leading-[1.4] text-ink-body">
-            &ldquo;{message.content}
-            {message.isStreaming && (
-              <span className="ml-0.5 inline-block h-5 w-0.5 animate-pulse bg-ink-muted align-middle" />
-            )}
-            {!message.isStreaming && <>&rdquo;</>}
-          </p>
+          {message.isThinking ? (
+            <span className="flex items-center gap-1.5 py-1" aria-label="Thinking">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-ink-muted [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-ink-muted [animation-delay:200ms]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-ink-muted [animation-delay:400ms]" />
+            </span>
+          ) : (
+            <p className="font-serif text-[22px] italic leading-[1.4] text-ink-body">
+              &ldquo;{message.content}
+              {message.isStreaming && (
+                <span className="ml-0.5 inline-block h-5 w-0.5 animate-pulse bg-ink-muted align-middle" />
+              )}
+              {!message.isStreaming && <>&rdquo;</>}
+            </p>
+          )}
         </div>
       </div>
     </article>

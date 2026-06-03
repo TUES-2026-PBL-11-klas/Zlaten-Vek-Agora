@@ -10,6 +10,7 @@ export interface ActiveMessage {
   emotion: Emotion | null;
   content: string;
   isStreaming: boolean;
+  isThinking: boolean;
 }
 
 export function fromPlaybackMessage(msg: DebateDetailMessageDto): ActiveMessage {
@@ -22,13 +23,14 @@ export function fromPlaybackMessage(msg: DebateDetailMessageDto): ActiveMessage 
     emotion: msg.emotion,
     content: msg.content,
     isStreaming: false,
+    isThinking: false,
   };
 }
 
 export function fromStreamedMessage(
   msg: StreamedMessage,
   persona: { name: string; demographic: string; color: string },
-  roundNumber: number,
+  roundNumber: number = msg.roundNumber,
 ): ActiveMessage {
   return {
     personaId: msg.personaId,
@@ -39,5 +41,6 @@ export function fromStreamedMessage(
     emotion: (msg.emotion as Emotion) ?? null,
     content: msg.tokens,
     isStreaming: !msg.complete,
+    isThinking: !msg.complete && msg.tokens === "",
   };
 }

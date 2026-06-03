@@ -37,13 +37,40 @@ export function PlaybackControls({
 }: PlaybackControlsProps) {
   if (isLive) {
     return (
-      <div className="flex items-center justify-between rounded-2xl border border-hair bg-surface px-6 py-4">
+      <div className="flex items-center gap-4 rounded-2xl border border-hair bg-surface px-6 py-4">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onPrev}
+            disabled={!canPrev}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-mut text-ink-primary transition-colors hover:bg-surface-2 disabled:opacity-30"
+            aria-label="Previous turn"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            onClick={onPlayPause}
+            disabled={totalTurns === 0}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-ink-button text-cream transition-colors hover:opacity-90 disabled:opacity-30"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+          </button>
+          <button
+            onClick={onNext}
+            disabled={!canNext}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-mut text-ink-primary transition-colors hover:bg-surface-2 disabled:opacity-30"
+            aria-label="Next turn"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
         <span className="flex items-center gap-2 text-[13px] text-ink-muted">
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent-rust" />
           Live
         </span>
 
-        <span className="shrink-0 font-mono text-[13px] tracking-wide text-ink-muted">
+        <span className="ml-auto shrink-0 font-mono text-[13px] tracking-wide text-ink-muted">
           {turnLabel}
         </span>
 

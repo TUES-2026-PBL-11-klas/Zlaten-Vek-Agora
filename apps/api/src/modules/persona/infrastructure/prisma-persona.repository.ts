@@ -24,6 +24,7 @@ export class PrismaPersonaRepository implements IPersonaRepository {
           data: {
             debateId: p.debateId,
             name: p.name,
+            role: p.role,
             demographic: p.demographic,
             interests: p.interests,
             fears: p.fears,
@@ -45,6 +46,7 @@ export class PrismaPersonaRepository implements IPersonaRepository {
       updates.map(({ id, ...data }) => {
         const payload: Prisma.PersonaUpdateInput = {};
         if (data.name !== undefined) payload.name = data.name;
+        if (data.role !== undefined) payload.role = data.role;
         if (data.demographic !== undefined) payload.demographic = data.demographic;
         if (data.interests !== undefined) payload.interests = data.interests;
         if (data.fears !== undefined) payload.fears = data.fears;
@@ -72,6 +74,7 @@ function toEntity(row: PrismaPersona): PersonaEntity {
     id: row.id,
     debateId: row.debateId,
     name: row.name,
+    role: row.role,
     demographic: row.demographic,
     interests: toStringArray(row.interests),
     fears: toStringArray(row.fears),

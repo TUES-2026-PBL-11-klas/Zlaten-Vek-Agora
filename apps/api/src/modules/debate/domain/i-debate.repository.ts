@@ -46,6 +46,7 @@ export interface IDebateRepository {
   findOverviewById(id: string): Promise<DebateOverview | null>;
   save(debate: Omit<DebateEntity, "id" | "createdAt">): Promise<DebateEntity>;
   updateStatus(id: string, status: string): Promise<DebateEntity>;
+  deleteWithCascade(id: string): Promise<void>;
 }
 
 export const DEBATE_REPOSITORY = Symbol("IDebateRepository");

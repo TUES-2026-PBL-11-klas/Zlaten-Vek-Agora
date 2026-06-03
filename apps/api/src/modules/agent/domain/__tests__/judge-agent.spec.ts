@@ -96,7 +96,11 @@ describe("JudgeAgent", () => {
     expect(llm.lastMessages.length).toBeGreaterThanOrEqual(2);
     expect(llm.lastMessages[0].role).toBe("system");
     expect(llm.lastMessages[0].content).toMatch(/impartial parliamentary mediator/i);
-    expect(llm.lastMessages.at(-1)).toEqual({ role: "user", content: "stub transcript" });
+    expect(llm.lastMessages).toContainEqual({ role: "user", content: "stub transcript" });
+    expect(llm.lastMessages.at(-1)).toEqual({
+      role: "user",
+      content: "Provide your structured synthesis now as a JSON object.",
+    });
     expect(llm.lastOptions?.temperature).toBeLessThanOrEqual(0.5);
     expect(llm.lastOptions?.responseFormat?.type).toBe("json_object");
   });

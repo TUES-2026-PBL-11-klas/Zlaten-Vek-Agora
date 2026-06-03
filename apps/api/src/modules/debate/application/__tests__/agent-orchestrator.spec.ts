@@ -3,6 +3,7 @@ import { firstValueFrom, toArray } from "rxjs";
 import { DebateStatus, DebateEvent } from "@agora/shared";
 import { AgentOrchestrator, ROUND_PHASES } from "../agent-orchestrator";
 import { PersonaAgentFactory } from "../../../agent/domain/persona-agent-factory";
+import { AgentContext } from "../../../agent/domain/agent-context";
 import { DEBATE_REPOSITORY, IDebateRepository } from "../../domain/i-debate.repository";
 import {
   PERSONA_REPOSITORY,
@@ -17,6 +18,10 @@ import {
   JUDGE_SUMMARY_REPOSITORY,
   IJudgeSummaryRepository,
 } from "../../domain/i-judge-summary.repository";
+import {
+  ANALYSIS_RESULT_REPOSITORY,
+  IAnalysisResultRepository,
+} from "../../../analysis/domain/i-analysis-result.repository";
 import { DebateEntity } from "../../domain/debate.entity";
 import { PersonaEntity } from "../../../persona/domain/persona.entity";
 import { RoundEntity } from "../../domain/round.entity";
@@ -43,6 +48,7 @@ const makePersona = (id: string, debateId = "debate-1"): PersonaEntity => ({
   id,
   debateId,
   name: `Participant ${id}`,
+  role: "Test group",
   demographic: "Test demographic",
   interests: ["interest"],
   fears: ["fear"],
@@ -85,6 +91,7 @@ function makeMockAgent(personaId: string, personaName: string) {
     generateResponse: async function* () {
       yield `Hello from ${personaName}`;
     },
+    classifyEmotion: async () => "calm",
   };
 }
 
@@ -165,7 +172,13 @@ function makeRepos(personas: PersonaEntity[], debateId = "debate-1") {
     findByDebate: jest.fn(),
   } as unknown as jest.Mocked<IJudgeSummaryRepository>;
 
-  return { debateRepo, personaRepo, roundRepo, messageRepo, judgeSummaryRepo };
+  const analysisResultRepo: jest.Mocked<IAnalysisResultRepository> = {
+    save: jest.fn(),
+    findByDebate: jest.fn().mockResolvedValue(null),
+    deleteByDebate: jest.fn(),
+  } as unknown as jest.Mocked<IAnalysisResultRepository>;
+
+  return { debateRepo, personaRepo, roundRepo, messageRepo, judgeSummaryRepo, analysisResultRepo };
 }
 
 // ─── Suite setup helper ───────────────────────────────────────────────────────
@@ -193,6 +206,7 @@ async function buildOrchestrator(
       { provide: ROUND_REPOSITORY, useValue: repos.roundRepo },
       { provide: DEBATE_MESSAGE_REPOSITORY, useValue: repos.messageRepo },
       { provide: JUDGE_SUMMARY_REPOSITORY, useValue: repos.judgeSummaryRepo },
+      { provide: ANALYSIS_RESULT_REPOSITORY, useValue: repos.analysisResultRepo },
       { provide: PersonaAgentFactory, useValue: factory },
       { provide: MetricsService, useValue: mockMetrics },
     ],
@@ -410,6 +424,7 @@ describe("AgentOrchestrator - concurrent session isolation", () => {
         { provide: ROUND_REPOSITORY, useValue: reposA.roundRepo },
         { provide: DEBATE_MESSAGE_REPOSITORY, useValue: reposA.messageRepo },
         { provide: JUDGE_SUMMARY_REPOSITORY, useValue: reposA.judgeSummaryRepo },
+        { provide: ANALYSIS_RESULT_REPOSITORY, useValue: reposA.analysisResultRepo },
         { provide: PersonaAgentFactory, useValue: factory },
         { provide: MetricsService, useValue: concurrencyMetrics },
       ],
@@ -573,5 +588,95 @@ describe("AgentOrchestrator - step mode vs auto mode produce equivalent event se
     const autoTypes = autoEvents.map((e) => e.type);
     const stepTypes = stepEvents.map((e) => e.type);
     expect(stepTypes).toEqual(autoTypes);
+  });
+});
+
+// ─── Analysis context injection ──────────────────────────────────────────────
+
+describe("AgentOrchestrator - analysis context injection", () => {
+  const makeAnalysis = () => ({
+    id: "analysis-1",
+    debateId: "debate-1",
+    affectedGroups: [
+      {
+        id: "pensioners",
+        name: "Test group",
+        personName: "Participant p1",
+        estimatedPopulation: "~1M",
+        demographics: "x",
+        interests: [],
+        fears: [],
+        priorities: [],
+        stance: "Opposed" as const,
+        stanceReason: "Hurts pensions",
+      },
+    ],
+    keyChanges: ["Raises retirement age"],
+    contentiousPoints: ["Fairness across generations"],
+    createdAt: new Date(),
+  });
+
+  it("feeds stance, key changes and contentious points to personas, and roster to judge", async () => {
+    const personas = [makePersona("p1")];
+    const repos = makeRepos(personas);
+    repos.analysisResultRepo.findByDebate.mockResolvedValue(makeAnalysis());
+
+    const personaContexts: AgentContext[] = [];
+    const judgeContexts: AgentContext[] = [];
+
+    const factory = {
+      create: jest.fn().mockImplementation((p: PersonaEntity) => ({
+        id: p.id,
+        personaName: p.name,
+        generateResponse: async function* (ctx: AgentContext) {
+          personaContexts.push(ctx);
+          yield "ok";
+        },
+        classifyEmotion: async () => "calm",
+      })),
+      createJudge: jest.fn().mockReturnValue({
+        id: "judge",
+        personaName: "Judge",
+        generateResponse: async function* (ctx: AgentContext) {
+          judgeContexts.push(ctx);
+          yield '{"contradictions":[],"commonGround":[],"compromise":[],"participantShifts":[],"closingStatement":""}';
+        },
+      }),
+    } as unknown as jest.Mocked<PersonaAgentFactory>;
+
+    const mockMetrics = {
+      debateGenerationDuration: { startTimer: jest.fn().mockReturnValue(jest.fn()) },
+    } as unknown as MetricsService;
+
+    const module = await Test.createTestingModule({
+      providers: [
+        AgentOrchestrator,
+        { provide: DEBATE_REPOSITORY, useValue: repos.debateRepo },
+        { provide: PERSONA_REPOSITORY, useValue: repos.personaRepo },
+        { provide: ROUND_REPOSITORY, useValue: repos.roundRepo },
+        { provide: DEBATE_MESSAGE_REPOSITORY, useValue: repos.messageRepo },
+        { provide: JUDGE_SUMMARY_REPOSITORY, useValue: repos.judgeSummaryRepo },
+        { provide: ANALYSIS_RESULT_REPOSITORY, useValue: repos.analysisResultRepo },
+        { provide: PersonaAgentFactory, useValue: factory },
+        { provide: MetricsService, useValue: mockMetrics },
+      ],
+    }).compile();
+
+    const orchestrator = module.get<AgentOrchestrator>(AgentOrchestrator);
+    await orchestrator.start("debate-1");
+    await collectEvents(orchestrator, "debate-1");
+
+    // Personas received the analysis-derived context, including their own stance.
+    expect(personaContexts.length).toBeGreaterThan(0);
+    expect(personaContexts[0].keyChanges).toEqual(["Raises retirement age"]);
+    expect(personaContexts[0].contentiousPoints).toEqual(["Fairness across generations"]);
+    expect(personaContexts[0].personaStance).toEqual({
+      stance: "Opposed",
+      reason: "Hurts pensions",
+    });
+
+    // Judge received the persona roster for exact id matching.
+    expect(judgeContexts).toHaveLength(1);
+    expect(judgeContexts[0].roster).toEqual([{ id: "p1", name: "Participant p1" }]);
   });
 });

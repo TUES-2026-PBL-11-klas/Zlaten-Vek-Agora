@@ -67,6 +67,8 @@ Two families. No third.
 - **Display serif** — a high-contrast transitional serif (target: GT Sectra, Canela, or Tiempos Headline). Used for page titles, section headings, pull quotes, and the italic emphasis words.
 - **Body sans** — a humanist neo-grotesk (target: Inter, or GT America). Used for body, UI, labels.
 
+**PDF export only:** the synthesis PDF (generated client-side with `@react-pdf/renderer`) substitutes **PT Serif** for the display serif and **PT Sans** for the body sans. These are the Cyrillic-capable, true-italic static TTFs the bundled PDF needs; the screen UI is unaffected. Fonts live in `apps/web/src/features/synthesis/pdf/fonts/`.
+
 ### Scale
 
 | Role               | Family              | Size / leading | Notes                                                                 |

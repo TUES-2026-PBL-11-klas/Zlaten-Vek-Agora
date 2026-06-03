@@ -3,7 +3,7 @@ import { DebateStatus } from "@agora/shared";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useDebatesQuery } from "@/features/debates/api/use-debates-query";
 import { useChamberStatsQuery } from "@/features/debates/api/use-chamber-stats-query";
-import { useDebateOverviewQuery } from "@/features/debates/api/use-debate-overview-query";
+import { useProfileQuery } from "@/features/profile/api/use-profile-query";
 import { ChamberHeader } from "@/features/debates/components/ChamberHeader";
 import { ActiveNowPanel } from "@/features/debates/components/ActiveNowPanel";
 import { FilterPills, type DebateFilter } from "@/features/debates/components/FilterPills";
@@ -24,9 +24,13 @@ export function DashboardPage() {
   const [filter, setFilter] = useState<DebateFilter>("all");
 
   const stats = useChamberStatsQuery();
+  const profile = useProfileQuery();
   const debates = useDebatesQuery(showAll ? ALL_COUNT : PREVIEW_COUNT);
 
-  const displayName = useMemo(() => deriveDisplayName(user?.email), [user?.email]);
+  const displayName = useMemo(
+    () => profile.data?.name?.trim() || deriveDisplayName(user?.email),
+    [profile.data?.name, user?.email],
+  );
 
   const list = useMemo(() => debates.data?.items ?? [], [debates.data]);
   const total = debates.data?.total ?? 0;
@@ -35,8 +39,7 @@ export function DashboardPage() {
   const participantCount = stats.data?.totalParticipants ?? 0;
   const lastActive = stats.data?.lastActiveAt ? relativeDays(stats.data.lastActiveAt) : null;
 
-  const activeDebate = useMemo(() => list.find((d) => isActiveStatus(d.status)), [list]);
-  const overview = useDebateOverviewQuery(activeDebate?.id);
+  const activeDebates = useMemo(() => list.filter((d) => isActiveStatus(d.status)), [list]);
 
   const filtered = useMemo(() => applyFilter(list, filter), [list, filter]);
   const canSeeAll = !showAll && total > PREVIEW_COUNT;
@@ -50,12 +53,17 @@ export function DashboardPage() {
         lastActive={lastActive}
       />
 
-      {activeDebate ? (
-        <ActiveNowPanel
-          summary={activeDebate}
-          overview={overview.data}
-          isLoading={overview.isLoading}
-        />
+      {activeDebates.length > 0 ? (
+        <section className="mt-10">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-label">
+            Active now
+          </p>
+          <div className="flex flex-col gap-4">
+            {activeDebates.map((debate) => (
+              <ActiveNowPanel key={debate.id} summary={debate} />
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <section className="mt-14 flex flex-col gap-6">

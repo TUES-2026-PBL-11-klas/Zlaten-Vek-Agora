@@ -86,12 +86,6 @@ export function usePlayback(rawMessages: DebateDetailMessageDto[]) {
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const seek = useCallback((index: number) => dispatch({ type: "SEEK", index }), []);
 
-  const skipToSynthesis = useCallback(() => {
-    const lastRound = Math.max(...messages.map((m) => m.roundNumber), 0);
-    const synthIdx = messages.findIndex((m) => m.roundNumber === lastRound);
-    if (synthIdx >= 0) dispatch({ type: "SEEK", index: synthIdx });
-  }, [messages]);
-
   return {
     messages,
     currentIndex: state.currentIndex,
@@ -107,6 +101,5 @@ export function usePlayback(rawMessages: DebateDetailMessageDto[]) {
     play,
     pause,
     seek,
-    skipToSynthesis,
   };
 }

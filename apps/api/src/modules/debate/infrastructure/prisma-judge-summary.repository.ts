@@ -26,6 +26,10 @@ export class PrismaJudgeSummaryRepository implements IJudgeSummaryRepository {
     const row = await this.prisma.judgeSummary.findUnique({ where: { debateId } });
     return row ? toEntity(row) : null;
   }
+
+  async deleteByDebate(debateId: string): Promise<void> {
+    await this.prisma.judgeSummary.deleteMany({ where: { debateId } });
+  }
 }
 
 type Row = {

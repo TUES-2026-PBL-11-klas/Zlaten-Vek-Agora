@@ -8,7 +8,8 @@ import { PersonaEntity } from "../../persona/domain/persona.entity";
 const makePersona = (override: Partial<PersonaEntity> = {}): PersonaEntity => ({
   id: "persona-1",
   debateId: "debate-1",
-  name: "Марина Иванова",
+  name: "М. Иванова",
+  role: "Млади семейства",
   demographic: "Майка с две деца",
   interests: ["образование", "здравеопазване"],
   fears: ["увеличение на данъците"],

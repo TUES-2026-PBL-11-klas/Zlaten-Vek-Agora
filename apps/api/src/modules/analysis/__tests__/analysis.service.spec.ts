@@ -78,6 +78,7 @@ class FakeDebateRepo implements IDebateRepository {
     this.debate = { ...this.debate, status };
     return this.debate;
   }
+  async deleteWithCascade(_id: string): Promise<void> {}
 }
 
 class FakePersonaRepo implements IPersonaRepository {

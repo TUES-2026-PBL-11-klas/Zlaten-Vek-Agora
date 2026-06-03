@@ -1,6 +1,7 @@
 export interface AffectedGroupDto {
   id: string;
   name: string;
+  personName: string;
   estimatedPopulation: string;
   demographics: string;
   interests: string[];
@@ -19,6 +20,7 @@ export interface AnalysisResultDto {
 export interface PersonaDraftDto {
   id: string;
   name: string;
+  role: string;
   demographic: string;
   interests: string[];
   fears: string[];

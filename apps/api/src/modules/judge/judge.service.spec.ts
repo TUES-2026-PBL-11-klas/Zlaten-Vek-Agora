@@ -22,6 +22,7 @@ const PERSONAS = [
     id: "p1",
     debateId: DEBATE_ID,
     name: "Mira K.",
+    role: "Tenants",
     demographic: "Long-term tenant",
     interests: [],
     fears: [],
@@ -34,6 +35,7 @@ const PERSONAS = [
     id: "p2",
     debateId: DEBATE_ID,
     name: "Stoyan P.",
+    role: "Landlords",
     demographic: "Building operator",
     interests: [],
     fears: [],
@@ -81,6 +83,7 @@ async function buildService(llmClient: ILLMClient): Promise<ServiceUnderTest> {
     findOverviewById: jest.fn(),
     save: jest.fn(),
     updateStatus: jest.fn(),
+    deleteWithCascade: jest.fn(),
   };
   const messages: jest.Mocked<IDebateMessageRepository> = {
     findByDebate: jest.fn(),
@@ -97,6 +100,7 @@ async function buildService(llmClient: ILLMClient): Promise<ServiceUnderTest> {
   const conclusions: jest.Mocked<IJudgeSummaryRepository> = {
     findByDebate: jest.fn(),
     save: jest.fn(),
+    deleteByDebate: jest.fn(),
   };
   const llmSpy: jest.Mocked<ILLMClient> = {
     streamCompletion: jest.fn(llmClient.streamCompletion.bind(llmClient)),

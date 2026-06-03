@@ -3,6 +3,7 @@ export type GroupStance = "Supportive" | "Opposed" | "Mixed";
 export interface AffectedGroup {
   id: string;
   name: string;
+  personName: string;
   estimatedPopulation: string;
   demographics: string;
   interests: string[];

@@ -136,6 +136,17 @@ export class PrismaDebateRepository implements IDebateRepository {
   async updateStatus(id: string, status: string): Promise<DebateEntity> {
     return this.prisma.debate.update({ where: { id }, data: { status } });
   }
+
+  async deleteWithCascade(id: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.debateMessage.deleteMany({ where: { debateId: id } }),
+      this.prisma.round.deleteMany({ where: { debateId: id } }),
+      this.prisma.analysisResult.deleteMany({ where: { debateId: id } }),
+      this.prisma.judgeSummary.deleteMany({ where: { debateId: id } }),
+      this.prisma.persona.deleteMany({ where: { debateId: id } }),
+      this.prisma.debate.delete({ where: { id } }),
+    ]);
+  }
 }
 
 function extractKeyChanges(value: unknown): string[] {

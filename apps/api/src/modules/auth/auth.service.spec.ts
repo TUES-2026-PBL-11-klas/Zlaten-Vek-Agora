@@ -22,6 +22,8 @@ describe("AuthService", () => {
       findByEmail: jest.fn(),
       save: jest.fn(),
       upsertById: jest.fn(),
+      updateName: jest.fn(),
+      deleteWithCascade: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

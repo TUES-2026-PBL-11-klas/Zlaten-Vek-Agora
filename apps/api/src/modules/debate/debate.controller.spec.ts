@@ -85,6 +85,9 @@ class FakeDebateRepository implements IDebateRepository {
   updateStatus(): Promise<DebateEntity> {
     throw new Error("not used");
   }
+  deleteWithCascade(): Promise<void> {
+    throw new Error("not used");
+  }
 }
 
 class FakeExtractor implements IBillTextExtractor {
@@ -201,59 +204,38 @@ describe("DebateController.create flow", () => {
     );
   }
 
-  it("returns analysis + personas on success", async () => {
-    const analyze = jest.fn().mockResolvedValue({
-      analysis: {
-        id: "a1",
-        debateId: "new-debate",
-        affectedGroups: [],
-        keyChanges: ["change"],
-        contentiousPoints: ["point"],
-        createdAt: new Date(),
-      },
-      personas: [
-        {
-          id: "p1",
-          debateId: "new-debate",
-          name: "Renter",
-          demographic: "demo",
-          interests: ["a"],
-          fears: ["b"],
-          priorities: ["c"],
-          color: "sage",
-          avatarUrl: null,
-          createdAt: new Date(),
-        },
-      ],
-    });
+  it("returns Analyzing immediately and kicks off detached analysis", async () => {
+    const analyze = jest.fn().mockResolvedValue(undefined);
     const controller = buildController({ analyze });
 
     const result = await controller.create(user, { billTitle: "Test Bill" });
-    expect(result.status).toBe(DebateStatus.PersonasPending);
-    expect(result.personas).toHaveLength(1);
-    expect(result.analysis?.keyChanges).toEqual(["change"]);
+    expect(result.status).toBe(DebateStatus.Analyzing);
+    expect(result.debateId).toBe("new-debate");
+    expect(result.billTitle).toBe("Test Bill");
     expect(analyze).toHaveBeenCalledWith("new-debate");
   });
 
-  it("returns AnalysisFailed without personas when LLM yields invalid output", async () => {
+  it("swallows analysis failures so the request still resolves Analyzing", async () => {
     const { AnalysisFailedException } =
       await import("../../common/exceptions/analysis-failed.exception");
     const analyze = jest.fn().mockRejectedValue(new AnalysisFailedException("bad json"));
     const controller = buildController({ analyze });
 
     const result = await controller.create(user, { billTitle: "Test Bill" });
-    expect(result.status).toBe(DebateStatus.AnalysisFailed);
+    expect(result.status).toBe(DebateStatus.Analyzing);
     expect(result.debateId).toBe("new-debate");
-    expect(result.personas).toBeUndefined();
-    expect(result.analysis).toBeUndefined();
+    expect(analyze).toHaveBeenCalledWith("new-debate");
+    // let the detached rejection settle so it doesn't leak into the next test
+    await Promise.resolve();
   });
 
-  it("rethrows non-analysis errors so caller can handle them", async () => {
+  it("swallows non-analysis errors instead of failing the request", async () => {
     const analyze = jest.fn().mockRejectedValue(new Error("network down"));
     const controller = buildController({ analyze });
 
-    await expect(controller.create(user, { billTitle: "Test Bill" })).rejects.toThrow(
-      "network down",
-    );
+    const result = await controller.create(user, { billTitle: "Test Bill" });
+    expect(result.status).toBe(DebateStatus.Analyzing);
+    expect(analyze).toHaveBeenCalledWith("new-debate");
+    await Promise.resolve();
   });
 });

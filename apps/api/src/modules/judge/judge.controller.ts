@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import type { SynthesisDto } from "@agora/shared";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -16,5 +16,13 @@ export class JudgeController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<SynthesisDto> {
     return this.judge.getSynthesis(id, user.userId);
+  }
+
+  @Post(":id/synthesis/regenerate")
+  regenerate(
+    @Param("id") id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<SynthesisDto> {
+    return this.judge.regenerateSynthesis(id, user.userId);
   }
 }
