@@ -47,6 +47,7 @@ export class AnalysisAgent extends BaseAgent {
 
     const stream = this.llmClient.streamCompletion(messages, {
       temperature: 0.3,
+      maxTokens: 1500,
       responseFormat: { type: "json_object" },
     });
 

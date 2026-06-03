@@ -27,9 +27,9 @@ Strict rules:
 - contradictions: exactly 3 numbered fault lines, each a single sentence describing where positions clashed.
 - commonGround: exactly 3 single-sentence agreements that genuinely emerged across the table.
 - compromise: exactly 3 actionable proposals describing the shape of a workable settlement.
-- participantShifts: one entry per persona in the supplied roster, in roster order, each personaId matching exactly.
+- participantShifts: exactly one entry per persona in the supplied ROSTER, in roster order. Each personaId MUST be copied verbatim from the ROSTER ids - never invent or alter an id, never use a persona name as the id.
 - shiftPercent: integer; 0 means unmoved, 100 means a full pivot. Anchor in evidence from the transcript.
-- closingStatement: civic, calm, lowercase phrasing ending with a period. Do not use em dashes.
+- closingStatement: civic, calm, lowercase phrasing ending with a period. Use hyphens, not em dashes.
 - Return ONLY the JSON object. No markdown fences, no preamble, no trailing commentary.`;
 
 export class JudgeAgent extends BaseAgent {
@@ -38,13 +38,23 @@ export class JudgeAgent extends BaseAgent {
   }
 
   async *generateResponse(context: AgentContext): AsyncIterable<string> {
+    const roster = context.roster ?? [];
+    const rosterBlock =
+      roster.length > 0
+        ? `ROSTER (use these exact personaId values, one participantShifts entry per row, in this order):\n${roster
+            .map((r) => `- ${r.id} = ${r.name}`)
+            .join("\n")}`
+        : "ROSTER: (none supplied)";
+
     const messages: LLMMessage[] = [
       { role: "system", content: JUDGE_SYSTEM_PROMPT },
+      { role: "user", content: rosterBlock },
       ...context.history,
     ];
 
     const stream = this.llmClient.streamCompletion(messages, {
       temperature: 0.3,
+      maxTokens: 900,
       responseFormat: { type: "json_object" },
     });
 

@@ -7,23 +7,46 @@ import { ILLMClient } from "./i-llm-client";
 const ROUND_INSTRUCTIONS: Record<RoundType, string> = {
   [RoundType.Position]: `This is the Opening Statements round. Present your personal position on this legislation.
 - State clearly which aspects you support and which you oppose.
+- Tie your position to at least one of the contentious points listed in DEBATE CONTEXT.
 - Ground every claim in your own lived experience, livelihood, or values.
 - Be direct. Do not hedge or speak in generalities.`,
 
   [RoundType.Counter]: `This is the Rebuttal round. You have read what the other participants said.
 - Challenge at least one specific argument made by another speaker. Quote or paraphrase their words.
+- Anchor your attack on one of the contentious points in DEBATE CONTEXT.
 - Explain precisely why their position is mistaken or incomplete from your perspective.
 - You may acknowledge a narrow point of agreement, but lead with your disagreement.`,
 
   [RoundType.CommonGround]: `This is the Common Ground round. The goal is productive compromise.
 - Identify at least one point you genuinely share with another participant.
-- Propose a concrete amendment or compromise that could satisfy more stakeholders.
-- Be honest — do not abandon your core interests, but show willingness to negotiate.`,
+- Propose a concrete amendment or compromise that addresses one of the contentious points.
+- Be honest - do not abandon your core interests, but show willingness to negotiate.`,
 };
 
-function buildSystemPrompt(persona: PersonaEntity, roundType: RoundType): string {
+function buildDebateContext(context: AgentContext): string {
+  const sections: string[] = [];
+  if (context.keyChanges && context.keyChanges.length > 0) {
+    sections.push(
+      `Key changes in the bill:\n${context.keyChanges.map((c) => `- ${c}`).join("\n")}`,
+    );
+  }
+  if (context.contentiousPoints && context.contentiousPoints.length > 0) {
+    sections.push(
+      `Contentious points:\n${context.contentiousPoints.map((c) => `- ${c}`).join("\n")}`,
+    );
+  }
+  if (context.personaStance) {
+    sections.push(
+      `YOUR STANCE: ${context.personaStance.stance} - ${context.personaStance.reason}\nArgue consistently from this stance.`,
+    );
+  }
+  if (sections.length === 0) return "";
+  return `\n\nDEBATE CONTEXT\n${sections.join("\n\n")}`;
+}
+
+function buildSystemPrompt(persona: PersonaEntity, context: AgentContext): string {
   const role = persona.role ? ` representing ${persona.role}` : "";
-  return `You are ${persona.name}${role} — ${persona.demographic}.
+  return `You are ${persona.name}${role} - ${persona.demographic}.
 
 CHARACTER PROFILE
 - Interests: ${persona.interests.join("; ")}
@@ -35,10 +58,11 @@ DEBATE RULES
 - Your name is ${persona.name}. Refer to yourself by your surname, and address other participants by their surname (e.g. "Колега Иванов").
 - Stay fully in character. Never break the fourth wall or mention AI.
 - Keep your response to 3-5 sentences: concise, concrete, and persuasive.
-- Start your reply directly — no preamble, no salutation.
+- Do not use em dashes; use hyphens instead.
+- Start your reply directly - no preamble, no salutation.${buildDebateContext(context)}
 
 ROUND INSTRUCTIONS
-${ROUND_INSTRUCTIONS[roundType]}`;
+${ROUND_INSTRUCTIONS[context.roundType]}`;
 }
 
 export class PersonaAgent extends BaseAgent {
@@ -54,7 +78,7 @@ export class PersonaAgent extends BaseAgent {
   }
 
   async *generateResponse(context: AgentContext): AsyncIterable<string> {
-    const systemPrompt = buildSystemPrompt(this.personaEntity, context.roundType);
+    const systemPrompt = buildSystemPrompt(this.personaEntity, context);
 
     // Fold bill + debate history into a single user message to avoid consecutive
     // assistant-role entries, which the OpenAI API rejects.
@@ -73,6 +97,7 @@ export class PersonaAgent extends BaseAgent {
 
     const stream = this.llmClient.streamCompletion(messages, {
       temperature: 0.8,
+      maxTokens: 320,
     });
 
     for await (const token of stream) {

@@ -14,6 +14,6 @@ import { PrismaAnalysisResultRepository } from "./infrastructure/prisma-analysis
     AnalysisService,
     { provide: ANALYSIS_RESULT_REPOSITORY, useClass: PrismaAnalysisResultRepository },
   ],
-  exports: [AnalysisService],
+  exports: [AnalysisService, ANALYSIS_RESULT_REPOSITORY],
 })
 export class AnalysisModule {}
