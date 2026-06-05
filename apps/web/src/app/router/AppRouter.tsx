@@ -8,6 +8,7 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { SynthesisPage } from "@/pages/SynthesisPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ReviewPersonasPage } from "@/pages/ReviewPersonasPage";
+import { MethodologyPage } from "@/pages/MethodologyPage";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/shared/lib/notify";
@@ -185,6 +186,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/methodology"
+            element={
+              <ProtectedRoute>
+                <MethodologyPage />
               </ProtectedRoute>
             }
           />

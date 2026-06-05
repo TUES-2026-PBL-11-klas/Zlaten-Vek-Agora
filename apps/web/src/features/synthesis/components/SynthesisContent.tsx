@@ -9,17 +9,16 @@ interface SynthesisContentProps {
   synthesis: SynthesisDto;
   onExport?: () => void;
   onReRun?: () => void;
-  onShare?: () => void;
 }
 
-export function SynthesisContent({ synthesis, onExport, onReRun, onShare }: SynthesisContentProps) {
+export function SynthesisContent({ synthesis, onExport, onReRun }: SynthesisContentProps) {
   return (
     <article className="flex flex-col gap-24">
       <SynthesisHeader synthesis={synthesis} onExport={onExport} />
       <VerdictGrid synthesis={synthesis} />
       <ShiftSection shifts={synthesis.participantShifts} />
       <JudgeClosingCard statement={synthesis.closingStatement} />
-      <SynthesisFooter onReRun={onReRun} onShare={onShare} />
+      <SynthesisFooter onReRun={onReRun} />
     </article>
   );
 }

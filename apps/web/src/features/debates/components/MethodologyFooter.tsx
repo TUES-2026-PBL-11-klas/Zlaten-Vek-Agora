@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { AgoraGlyph } from "../lib/agora-glyph";
 
 export function MethodologyFooter() {
@@ -17,12 +18,12 @@ export function MethodologyFooter() {
           </p>
         </div>
       </div>
-      <a
-        href="#methodology"
+      <Link
+        to="/methodology"
         className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-hair bg-surface px-4 text-[13px] font-medium text-ink-primary transition-colors hover:bg-canvas"
       >
         Read methodology
-      </a>
+      </Link>
     </aside>
   );
 }
