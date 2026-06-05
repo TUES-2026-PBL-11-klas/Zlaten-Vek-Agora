@@ -1,7 +1,7 @@
 # Agora - Документация
 
 **Екип:** Zlaten Vek (TUES 2026, PBL, 11 клас)
-**Технологичен стек:** React + Vite + TypeScript (web), NestJS + TypeScript (api), PostgreSQL (Supabase) + Prisma, OpenAI, Docker, Kubernetes (k3s), Traefik, Prometheus + Grafana + Alertmanager, GitHub Actions.
+**Технологичен стек:** React + Vite + TypeScript (web), NestJS + TypeScript (api), PostgreSQL (Supabase) + Prisma, OpenAI, Docker, Kubernetes (k3s), Traefik, Prometheus + Grafana + Alertmanager, GitHub Actions, ArgoCD (GitOps).
 
 ---
 
@@ -258,17 +258,18 @@ _Таблица 15: SOLID принципи_
 
 _Фигура 1: Инфраструктурна диаграма_
 
-| Компонент                           | Роля                                                                                                        |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Traefik IngressRoute                | Маршрутизация: `PathPrefix(/api)` → api service (priority 100), `PathPrefix(/)` → web service (priority 10) |
-| Web Deployment                      | 2 реплики, `serve` сервира Vite билда, port 80                                                              |
-| API Deployment                      | 3 реплики, NestJS, port 3000, initContainer пуска Prisma миграции, non-root user 1001                       |
-| API HPA                             | Min 3 / Max 6 реплики, scale при CPU > 70%                                                                  |
-| Web HPA                             | Min 2 / Max 4 реплики, scale при CPU > 70%                                                                  |
-| Supabase (PostgreSQL)               | Управлявана база + Auth                                                                                     |
-| OpenAI API                          | LLM генерация, стрийминг                                                                                    |
-| Prometheus + Grafana + Alertmanager | Метрики, дашборди, алерти → Discord                                                                         |
-| GHCR                                | Container registry за image-ите                                                                             |
+| Компонент                           | Роля                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Traefik IngressRoute                | Маршрутизация: `PathPrefix(/api)` → api service (priority 100), `PathPrefix(/)` → web service (priority 10)   |
+| Web Deployment                      | 2 реплики, `serve` сервира Vite билда, port 80                                                                |
+| API Deployment                      | 3 реплики, NestJS, port 3000, initContainer пуска Prisma миграции, non-root user 1001                         |
+| API HPA                             | Min 3 / Max 6 реплики, scale при CPU > 70%                                                                    |
+| Web HPA                             | Min 2 / Max 4 реплики, scale при CPU > 70%                                                                    |
+| Supabase (PostgreSQL)               | Управлявана база + Auth                                                                                       |
+| OpenAI API                          | LLM генерация, стрийминг                                                                                      |
+| Prometheus + Grafana + Alertmanager | Метрики, дашборди, алерти → Discord                                                                           |
+| GHCR                                | Container registry за image-ите                                                                               |
+| ArgoCD                              | GitOps контролер: следи `k8s/` на `main` и автоматично синхронизира манифестите в клъстера (prune + selfHeal) |
 
 _Таблица 16: Компоненти на инфраструктурата_
 
@@ -455,6 +456,7 @@ _Фигура 3: UML class диаграма_
 │           └── shared/                     # http client, ui, lib
 ├── packages/shared/                        # @agora/shared - DTO + HTTP контракти
 ├── k8s/                                    # манифести + observability
+├── argocd/                                 # ArgoCD Application (GitOps sync на k8s/)
 ├── docs/diagrams/                          # PNG диаграми (source of truth)
 └── .github/workflows/                      # ci.yml, cd.yml
 ```
@@ -647,14 +649,17 @@ _Таблица 29: CI pipeline_
 
 **CD** (`.github/workflows/cd.yml`) - на push към `main` и `v*` тагове:
 
-| Job            | Стъпки                                                                                                                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| build-and-push | matrix (api, web): GHCR login, buildx (linux/amd64), push с тагове `sha-short`, `sha-long`, `latest` (main), semver (тагове). Build args: `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
-| notify         | при провал → Discord                                                                                                                                                                                    |
+| Job                  | Стъпки                                                                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| build-and-push       | matrix (api, web): GHCR login, buildx (linux/amd64), push с тагове `sha-short`, `sha-long`, `latest` (main), semver (тагове). Build args: `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
+| deploy (само `main`) | пренаписва image таговете в `k8s/api-deployment.yaml` и `k8s/web-deployment.yaml` на `:sha-<short>` (sed), commit-ва обратно в `main` с `[skip ci]`                                                     |
+| notify               | при провал → Discord                                                                                                                                                                                    |
 
 _Таблица 30: CD pipeline_
 
 Image-и в GHCR: `ghcr.io/<owner>/agora-api`, `ghcr.io/<owner>/agora-web`.
+
+**GitOps доставка (ArgoCD).** Deploy-ът към клъстера не минава през ръчен `kubectl apply`. `argocd/application.yaml` дефинира ArgoCD `Application`, който следи `k8s/` на `main` и авто-синхронизира (`prune` + `selfHeal`) в namespace `agora`. Целият поток е автоматичен: merge в `main` → CD build-ва и push-ва image-ите → `deploy` job-ът пинва деплойментите на `:sha-<short>` и commit-ва обратно → ArgoCD синхронизира новите тагове в клъстера. `Application`-ът игнорира `secret.yaml` и `/data` diff-овете по secret-ите (out-of-band), както и HPA `status` / `spec.metrics` drift; не синхронизира `k8s/observability/`. Bootstrap веднъж: `kubectl apply -f argocd/application.yaml`.
 
 **Pre-commit hooks (Husky):**
 
@@ -665,7 +670,7 @@ Image-и в GHCR: `ghcr.io/<owner>/agora-api`, `ghcr.io/<owner>/agora-web`.
 
 ### 4.3 Kubernetes и наблюдаемост
 
-Манифести в [k8s/](../k8s/) (IaC, всичко в repo). Оркестратор **k3s** с вграден Traefik.
+Манифести в [k8s/](../k8s/) (IaC, всичко в repo). Оркестратор **k3s** с вграден Traefik. Доставката им в клъстера е GitOps през ArgoCD (`argocd/application.yaml`, виж 4.2).
 
 | Файл                                    | Какво декларира                                                                              |
 | --------------------------------------- | -------------------------------------------------------------------------------------------- |

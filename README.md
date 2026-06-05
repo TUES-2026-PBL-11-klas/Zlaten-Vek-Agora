@@ -4,7 +4,7 @@
 
 Agora turns a piece of legislation into a debate. You upload a PDF or paste text; an analysis agent extracts the groups the bill affects; one persona agent per group argues its corner across structured rounds; a judge agent reads the whole transcript and synthesizes the contradictions, the common ground, and the workable compromises. Replies stream token-by-token in real time.
 
-It is a pnpm + Turborepo monorepo: a NestJS API, a Vite + React web app, and a shared types package, all layered.
+It is a pnpm + Turborepo monorepo: a NestJS API, a Vite + React web app, and a shared types package, all layered. Delivery is GitOps: GitHub Actions builds images to GHCR, and ArgoCD syncs the `k8s/` manifests onto k3s automatically.
 
 ## Table of contents
 
@@ -87,6 +87,7 @@ Any new external dependency (Prisma, OpenAI, Supabase clients) lives in `infrast
 | Auth     | Supabase Auth (email + JWT), `passport-jwt`                                                  |
 | LLM      | OpenAI API, streaming (model set via `OPENAI_DEFAULT_MODEL`)                                 |
 | Shared   | `@agora/shared` - DTOs and HTTP contracts imported by both apps                              |
+| Infra    | k3s, Traefik ingress, GitHub Actions CI/CD → GHCR, ArgoCD (GitOps sync of `k8s/`)            |
 
 ## Project layout
 
@@ -113,6 +114,7 @@ Any new external dependency (Prisma, OpenAI, Supabase clients) lives in `infrast
 │   └── shared/                           # @agora/shared - enums + HTTP contracts
 ├── docs/diagrams/                        # architecture, db, infra, uml (source of truth)
 ├── k8s/                                  # k3s manifests
+├── argocd/                               # ArgoCD Application (GitOps sync of k8s/)
 ├── docker-compose.yml
 ├── turbo.json
 └── pnpm-workspace.yaml
