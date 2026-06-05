@@ -21,7 +21,7 @@ spec:
         runAsGroup: 1001
       initContainers:
         - name: prisma-migrate
-          image: ghcr.io/tues-2026-pbl-11-klas/agora-api:sha-526984f
+          image: ghcr.io/tues-2026-pbl-11-klas/agora-api:sha-14842d5
           command: ["node_modules/.bin/prisma", "migrate", "deploy"]
           env:
             - name: DATABASE_URL
@@ -36,7 +36,7 @@ spec:
                   key: DIRECT_URL
       containers:
         - name: api
-          image: ghcr.io/tues-2026-pbl-11-klas/agora-api:sha-526984f
+          image: ghcr.io/tues-2026-pbl-11-klas/agora-api:sha-14842d5
           ports:
             - containerPort: 3000
           readinessProbe:
