@@ -22,6 +22,7 @@ spec:
       initContainers:
         - name: prisma-migrate
           image: ghcr.io/tues-2026-pbl-11-klas/agora-api:sha-14842d5
+          workingDir: /app/apps/api
           command: ["node_modules/.bin/prisma", "migrate", "deploy"]
           env:
             - name: DATABASE_URL
