@@ -151,7 +151,7 @@ Runs on every PR targeting `main` and every push to non-`main` branches. Jobs: `
 
 ### CD ([.github/workflows/cd.yml](.github/workflows/cd.yml))
 
-Runs on push to `main` and on `v*` tag pushes. Matrix builds the `api` and `web` multi-stage images with Buildx (gha cache), then pushes them to `ghcr.io/<owner>/agora-api` and `ghcr.io/<owner>/agora-web`. Tags: `latest` (main only), `sha-<short>`, `sha-<long>`, and on tag pushes `<version>` + `<major>.<minor>`. The k3s rollout step lands in a follow-up.
+Runs on push to `main` and on `v*` tag pushes. Matrix builds the `api` and `web` multi-stage images with Buildx (gha cache), then pushes them to `ghcr.io/<owner>/agora-api` and `ghcr.io/<owner>/agora-web`. Tags: `latest` (main only), `sha-<short>`, `sha-<long>`, and on tag pushes `<version>` + `<major>.<minor>`. On `main`, a final `deploy` job rewrites the image tags in [k8s/api-deployment.yaml](k8s/api-deployment.yaml) / [k8s/web-deployment.yaml](k8s/web-deployment.yaml) to `:sha-<short>` and commits the change back with `[skip ci]`. ArgoCD watches `k8s/` and syncs the new tags to the cluster (see [Deploying to k3s](#deploying-to-k3s)).
 
 Required CI configuration:
 
@@ -204,7 +204,23 @@ kubectl -n agora create secret generic agora-secrets \
 kubectl apply -f k8s/
 ```
 
-CD bumps the image tag in the deployments from the placeholder `0000000` to the commit SHA.
+### GitOps with ArgoCD
+
+Continuous delivery to the cluster runs through ArgoCD instead of manual `kubectl apply`. [argocd/application.yaml](argocd/application.yaml) defines an `Application` that watches `k8s/` on `main` and auto-syncs (`prune` + `selfHeal`) into the `agora` namespace.
+
+Bootstrap once (ArgoCD must already be installed in the `argocd` namespace), after the out-of-band secrets above exist:
+
+```bash
+kubectl apply -f argocd/application.yaml
+```
+
+From then on the flow is fully automated: merge to `main` -> CD builds and pushes the images -> the `deploy` job pins the deployments to `:sha-<short>` and commits back -> ArgoCD syncs the new tags onto the cluster. No manual `kubectl` per release.
+
+Scope notes:
+
+- The `Application` excludes `secret.yaml` and ignores `/data` diffs on `agora-secrets` / `ghcr-secret`, so the out-of-band secrets are never clobbered. It also ignores HPA `status` / `spec.metrics` drift.
+- It does **not** sync `k8s/observability/` (Prometheus / Grafana / Alertmanager) - that subtree stays manually applied for now.
+- The `deploy` job pushes the image-bump commit straight to `main`. `main` is currently unprotected, so this works. **When you enable the branch protection rule above, add `github-actions[bot]` to the bypass allowlist** (Settings → Branches → rule for `main` → "Allow specified actors to bypass"), otherwise the push is rejected and the rollout stalls.
 
 ## Endpoints
 

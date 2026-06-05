@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agora
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/TUES-2026-PBL-11-klas/Zlaten-Vek-Agora.git
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: false
+      exclude: secret.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agora
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: agora-secrets
+      namespace: agora
+      jsonPointers:
+        - /data
+    - group: ""
+      kind: Secret
+      name: ghcr-secret
+      namespace: agora
+      jsonPointers:
+        - /data
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+      namespace: agora
+      jsonPointers:
+        - /status
+        - /spec/metrics
