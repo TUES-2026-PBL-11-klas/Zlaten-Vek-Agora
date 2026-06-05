@@ -263,7 +263,7 @@ Manifests in [k8s/](k8s/). Target runtime is k3s (or local k3d) with the bundled
 - [namespace.yaml](k8s/namespace.yaml) - `agora` namespace.
 - [api-deployment.yaml](k8s/api-deployment.yaml) / [api-service.yaml](k8s/api-service.yaml) - NestJS API, 3 replicas.
 - [api-hpa.yaml](k8s/api-hpa.yaml) - HPA: min 3, max 6, target 70% CPU.
-- [web-deployment.yaml](k8s/web-deployment.yaml) / [web-service.yaml](k8s/web-service.yaml) - Vite/nginx web, 2 replicas.
+- [web-deployment.yaml](k8s/web-deployment.yaml) / [web-service.yaml](k8s/web-service.yaml) - Vite web served by `serve`, 2 replicas.
 - [ingress.yaml](k8s/ingress.yaml) - Traefik `IngressRoute`: `/api` → api, `/` → web.
 
 Secrets and the GHCR pull secret are created out of band:
