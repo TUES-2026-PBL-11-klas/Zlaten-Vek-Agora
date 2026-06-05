@@ -254,7 +254,14 @@ Hooks install via the `prepare` script after `pnpm install`. Don't bypass with `
 
 **CD** ([.github/workflows/cd.yml](.github/workflows/cd.yml)) - on push to `main` and `v*` tags: builds multi-stage images for both apps and pushes them to GHCR (`ghcr.io/<owner>/agora-api`, `ghcr.io/<owner>/agora-web`). Size budget: api < 300 MB, web < 50 MB.
 
-**Branch protection** on `main`: PR required, ≥ 1 approval, all status checks green, conversation resolution required, no force pushes.
+The CD `deploy` job pushes the image-tag bump back to `main` (see [Deploying to k3s](#deploying-to-k3s)). For that it needs **Settings → Actions → General → Workflow permissions** set to `Read and write permissions` (so `GITHUB_TOKEN` can push to GHCR), plus **Settings → Secrets and variables → Actions**: `VITE_SUPABASE_ANON_KEY` (secret), and `VITE_SUPABASE_URL` / `VITE_API_URL` (variables, optional; API URL defaults to `/api`).
+
+**Branch protection** on `main` (`Settings → Branches`, configure once):
+
+- Require a pull request before merging; require **1** approval (each teammate does ≥ 2 reviews/week - ВОТ requirement); dismiss stale approvals on new commits.
+- Require status checks to pass and branches to be up to date: `Lint (ESLint + Prettier)`, `Secret scan (gitleaks)`, `Type-check (tsc --noEmit)`, `Unit tests`, `Build (api + web)`.
+- Require conversation resolution before merging.
+- Do not allow bypassing; leave force pushes and deletions off.
 
 ## Deploying to k3s
 
@@ -287,6 +294,24 @@ kubectl apply -f k8s/
 ```
 
 CD bumps the image tag in the deployments from the `0000000` placeholder to the commit SHA.
+
+### GitOps with ArgoCD
+
+Continuous delivery to the cluster runs through ArgoCD instead of manual `kubectl apply`. [argocd/application.yaml](argocd/application.yaml) defines an `Application` that watches `k8s/` on `main` and auto-syncs (`prune` + `selfHeal`) into the `agora` namespace.
+
+Bootstrap once (ArgoCD must already be installed in the `argocd` namespace), after the out-of-band secrets above exist:
+
+```bash
+kubectl apply -f argocd/application.yaml
+```
+
+From then on the flow is fully automated: merge to `main` -> CD builds and pushes the images -> the `deploy` job pins the deployments to `:sha-<short>` and commits back -> ArgoCD syncs the new tags onto the cluster. No manual `kubectl` per release.
+
+Scope notes:
+
+- The `Application` excludes `secret.yaml` and ignores `/data` diffs on `agora-secrets` / `ghcr-secret`, so the out-of-band secrets are never clobbered. It also ignores HPA `status` / `spec.metrics` drift.
+- It does **not** sync `k8s/observability/` (Prometheus / Grafana / Alertmanager) - that subtree stays manually applied for now.
+- The `deploy` job pushes the image-bump commit straight to `main`. If `main` is unprotected this just works. **Once you enable the [branch protection rule](#quality-gates), add `github-actions[bot]` to the bypass allowlist** (Settings → Branches → rule for `main` → "Allow specified actors to bypass"), otherwise the push is rejected and the rollout stalls.
 
 ## Diagrams
 
