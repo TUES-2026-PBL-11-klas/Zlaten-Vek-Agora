@@ -17,7 +17,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: web
-          image: ghcr.io/tues-2026-pbl-11-klas/agora-web:0000000
+          image: ghcr.io/tues-2026-pbl-11-klas/agora-web:sha-ae9968f
           ports:
             - containerPort: 80
           readinessProbe:
